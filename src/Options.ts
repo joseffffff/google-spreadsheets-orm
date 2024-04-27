@@ -4,7 +4,6 @@ import { sheets_v4 } from 'googleapis';
 
 export type AuthOptions = GoogleAuth | OAuth2Client | BaseExternalAccountClient | string;
 
-
 export interface Options<T extends { id: string }> {
   readonly castings?: Castings<T>;
   readonly sheetClients?: sheets_v4.Sheets[];

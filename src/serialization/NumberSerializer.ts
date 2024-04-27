@@ -2,7 +2,6 @@ import { Serializer } from './Serializer';
 import { SerializationError } from './SerializationError';
 
 export class NumberSerializer implements Serializer<number> {
-
   public fromSpreadsheetValue(value: string | undefined): number | undefined {
     if (value === undefined) {
       return undefined;

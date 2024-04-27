@@ -1,7 +1,6 @@
 import { Serializer } from './Serializer';
 
 export class JsonFieldSerializer implements Serializer<object> {
-
   public fromSpreadsheetValue(value: string | undefined): object | undefined {
     if (!value) {
       return undefined;

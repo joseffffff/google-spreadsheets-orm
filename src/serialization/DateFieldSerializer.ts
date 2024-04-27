@@ -5,10 +5,7 @@ import { Serializer } from './Serializer';
 const DATE_FORMAT = 'd/M/yyyy H:mm:ss';
 
 export class DateFieldSerializer implements Serializer<Date> {
-  constructor(
-    private readonly logger: Logger,
-  ) {
-  }
+  constructor(private readonly logger: Logger) {}
 
   public fromSpreadsheetValue(value: string | undefined): Date | undefined {
     if (!value) {

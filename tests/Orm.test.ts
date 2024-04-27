@@ -33,7 +33,7 @@ describe(GoogleSpreadsheetOrm.name, () => {
     secondClient.spreadsheets = mock<Resource$Spreadsheets>();
     secondClient.spreadsheets.values = mock<Resource$Spreadsheets$Values>();
 
-    sheetClients = [ firstClient, secondClient ];
+    sheetClients = [firstClient, secondClient];
     sut = new GoogleSpreadsheetOrm<TestEntity>(SPREADSHEET_ID, SHEET, {
       sheetClients,
       castings: {
@@ -47,7 +47,7 @@ describe(GoogleSpreadsheetOrm.name, () => {
 
   test('findAll should correctly parse all values', async () => {
     const rawValues = [
-      [ 'id', 'createdAt', 'name', 'jsonField', 'current', 'year' ],
+      ['id', 'createdAt', 'name', 'jsonField', 'current', 'year'],
       [
         'ae222b54-182f-4958-b77f-26a3a04dff32',
         '13/10/2022 08:11:23',
@@ -65,31 +65,19 @@ describe(GoogleSpreadsheetOrm.name, () => {
         'true',
         '',
       ],
-      [
-        'ae222b54-182f-4958-b77f-26a3a04dff34',
-        '29/12/2023 17:47:04',
-        'Donh Joe 2',
-        '{}',
-        '',
-        undefined,
-      ],
-      [
-        'ae222b54-182f-4958-b77f-26a3a04dff35',
-        '29/12/2023 17:47:04',
-        'Donh Joe 3',
-        '{}',
-        undefined,
-        '666',
-      ],
+      ['ae222b54-182f-4958-b77f-26a3a04dff34', '29/12/2023 17:47:04', 'Donh Joe 2', '{}', '', undefined],
+      ['ae222b54-182f-4958-b77f-26a3a04dff35', '29/12/2023 17:47:04', 'Donh Joe 3', '{}', undefined, '666'],
     ];
 
     sheetClients
       .map(s => s.spreadsheets.values as MockProxy<sheets_v4.Resource$Spreadsheets$Values>)
-      .forEach(mockValuesClient => mockValuesClient.get.mockResolvedValue({
-        data: {
-          values: rawValues,
-        },
-      } as never));
+      .forEach(mockValuesClient =>
+        mockValuesClient.get.mockResolvedValue({
+          data: {
+            values: rawValues,
+          },
+        } as never),
+      );
 
     const entities = await sut.findAll();
 
@@ -98,7 +86,7 @@ describe(GoogleSpreadsheetOrm.name, () => {
         id: 'ae222b54-182f-4958-b77f-26a3a04dff32',
         createdAt: new Date('2022-10-13 08:11:23'),
         name: 'John Doe',
-        jsonField: [ 1, 2, 3, 4, 5, 6 ],
+        jsonField: [1, 2, 3, 4, 5, 6],
         current: false,
         year: 2023,
       },
