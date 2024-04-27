@@ -10,6 +10,6 @@ export interface Options<T extends { id: string }> {
   readonly sheetClients?: sheets_v4.Sheets[];
   readonly auth?: AuthOptions | AuthOptions[];
   readonly verbose?: boolean;
-  readonly cacheContent: false;
-  readonly instantiator: (values: object) => T;
+  // readonly cacheContent: false;
+  readonly instantiator?: (values: object) => T;
 }
