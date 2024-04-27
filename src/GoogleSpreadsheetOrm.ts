@@ -13,18 +13,14 @@ import { GoogleSpreadsheetOrmError } from './errors/GoogleSpreadsheetOrmError';
 import { Options } from './Options';
 import Schema$ValueRange = sheets_v4.Schema$ValueRange;
 
-export class GoogleSpreadsheetOrm<T extends { readonly id: string } = { id: string }> {
+export class GoogleSpreadsheetOrm<T extends { readonly id: string }> {
   private readonly logger: Logger;
   private readonly sheetsClientProvider: GoogleSheetClientProvider;
   private readonly serializers: Map<string, Serializer<unknown>> = new Map();
 
   private readonly instantiator: (rawRowObject: object) => T;
 
-  constructor(
-    private readonly spreadsheetId: string,
-    private readonly sheet: string,
-    private readonly options: Options<T>,
-  ) {
+  constructor(private readonly options: Options<T>) {
     this.logger = new Logger(options.verbose);
 
     const auths = Array.isArray(options.auth) ? options.auth : !!options.auth ? [options.auth] : [];
@@ -302,10 +298,10 @@ export class GoogleSpreadsheetOrm<T extends { readonly id: string } = { id: stri
 
   private async allSheetData(): Promise<string[][]> {
     return this.sheetsClientProvider.handleQuotaRetries(async sheetsClient => {
-      this.logger.log(`Querying all sheet data table=${this.sheet}`);
+      this.logger.log(`Querying all sheet data table=${this.options.sheet}`);
       const db: GaxiosResponse<Schema$ValueRange> = await sheetsClient.spreadsheets.values.get({
-        spreadsheetId: this.spreadsheetId,
-        range: this.sheet,
+        spreadsheetId: this.options.spreadsheetId,
+        range: this.options.sheet,
       });
       return db.data.values as string[][];
     });
