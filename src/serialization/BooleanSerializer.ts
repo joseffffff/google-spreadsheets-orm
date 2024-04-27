@@ -17,8 +17,6 @@ export class BooleanSerializer implements Serializer<boolean> {
     }
   }
 
-  
-
   public toSpreadsheetValue(value: boolean | undefined): string {
     return value === undefined || value === null ? '' : `${value}`;
   }

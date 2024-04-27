@@ -27,14 +27,16 @@ export class GoogleSpreadsheetOrm<T extends { readonly id: string } = { id: stri
   ) {
     this.logger = new Logger(options.verbose);
 
-    const auths = Array.isArray(options.auth) ? options.auth : !!options.auth ? [ options.auth ] : [];
+    const auths = Array.isArray(options.auth) ? options.auth : !!options.auth ? [options.auth] : [];
     const sheetClients: sheets_v4.Sheets[] =
       Array.isArray(options.sheetClients) && options.sheetClients.length > 0
         ? options.sheetClients
-        : auths.map(auth => google.sheets({
-          version: 'v4',
-          auth,
-        }));
+        : auths.map(auth =>
+            google.sheets({
+              version: 'v4',
+              auth,
+            }),
+          );
 
     if (sheetClients.length === 0) {
       // throw

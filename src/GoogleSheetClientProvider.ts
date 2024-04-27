@@ -8,8 +8,7 @@ export class GoogleSheetClientProvider {
   public constructor(
     private readonly clientsPool: sheets_v4.Sheets[],
     private readonly logger: Logger,
-  ) {
-  }
+  ) {}
 
   public async handleQuotaRetries<T>(func: (sheetsClient: sheets_v4.Sheets) => Promise<T>): Promise<T> {
     const blacklist = new Set<sheets_v4.Sheets>();
@@ -29,7 +28,9 @@ export class GoogleSheetClientProvider {
         return result;
       } catch (e) {
         if (e instanceof Error) {
-          this.logger.log(`GoogleSheetClientProvider - Try number ${tryNum} failed (${e.constructor.name} - ${e.message})`);
+          this.logger.log(
+            `GoogleSheetClientProvider - Try number ${tryNum} failed (${e.constructor.name} - ${e.message})`,
+          );
           if (e.message.includes(this.QUOTA_EXCEEDED_ERROR)) {
             blacklist.add(client);
           } else {

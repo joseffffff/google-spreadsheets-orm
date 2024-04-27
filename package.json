@@ -9,7 +9,8 @@
   "scripts": {
     "test": "jest",
     "lint": "eslint .",
-    "prettier": "prettier --check ."
+    "prettier": "prettier --check .",
+    "prettier:fix": "prettier --write ."
   },
   "engines": {
     "npm": ">=8.0.0",
