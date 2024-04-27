@@ -34,7 +34,9 @@ describe(GoogleSpreadsheetOrm.name, () => {
     secondClient.spreadsheets.values = mock<Resource$Spreadsheets$Values>();
 
     sheetClients = [firstClient, secondClient];
-    sut = new GoogleSpreadsheetOrm<TestEntity>(SPREADSHEET_ID, SHEET, {
+    sut = new GoogleSpreadsheetOrm<TestEntity>({
+      spreadsheetId: SPREADSHEET_ID,
+      sheet: SHEET,
       sheetClients,
       castings: {
         createdAt: FieldType.DATE,
@@ -66,7 +68,7 @@ describe(GoogleSpreadsheetOrm.name, () => {
         '',
       ],
       ['ae222b54-182f-4958-b77f-26a3a04dff34', '29/12/2023 17:47:04', 'Donh Joe 2', '{}', '', undefined],
-      ['ae222b54-182f-4958-b77f-26a3a04dff35', '29/12/2023 17:47:04', 'Donh Joe 3', '{}', undefined, '666'],
+      ['ae222b54-182f-4958-b77f-26a3a04dff35', '29/12/2023 17:47:04', 'Donh Joe 3', '{}', undefined, '2023'],
     ];
 
     sheetClients
@@ -112,7 +114,7 @@ describe(GoogleSpreadsheetOrm.name, () => {
         name: 'Donh Joe 3',
         jsonField: {},
         current: undefined,
-        year: 666,
+        year: 2023,
       },
     ];
     expect(entities).toStrictEqual(expectedValues);
