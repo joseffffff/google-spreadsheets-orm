@@ -9,6 +9,7 @@
   "scripts": {
     "test": "jest",
     "lint": "eslint .",
+    "lint:tsc": "tsc --noemit",
     "prettier": "prettier --check .",
     "prettier:fix": "prettier --write ."
   },

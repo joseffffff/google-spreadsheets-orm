@@ -17,4 +17,4 @@ jobs:
       - name: Install dependencies
         run: npm install
       - name: Type Checking
-        uses: andoshin11/typescript-error-reporter-action@v1.0.2
+        run: npm run lint:tsc
