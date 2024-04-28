@@ -1,0 +1,9 @@
+.eslintrc.json
+.github/
+.lintstagedrc
+.prettierrc.json
+babel.config.js
+package-lock.json
+src/
+tests/
+tsconfig.json
