@@ -15,7 +15,7 @@ jobs:
       - name: Install dependencies
         run: npm install
       - name: Bump version
-        run: npm version "${{ github.ref_name }}""
+        run: npm version "${{ github.ref_name }}"
       - name: Commit & Push changes
         uses: actions-js/push@master
         with:
