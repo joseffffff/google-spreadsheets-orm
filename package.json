@@ -2,7 +2,8 @@
   "name": "google-spreadsheets-orm",
   "version": "0.0.1",
   "description": "Production-ready ORM applying data-mapper pattern to consume google spreadsheets.",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "directories": {
     "test": "tests"
   },
@@ -11,7 +12,8 @@
     "lint": "eslint .",
     "lint:tsc": "tsc --noemit",
     "prettier": "prettier --check .",
-    "prettier:fix": "prettier --write ."
+    "prettier:fix": "prettier --write .",
+    "build": "tsc --build tsconfig.json ."
   },
   "engines": {
     "npm": ">=8.0.0",
