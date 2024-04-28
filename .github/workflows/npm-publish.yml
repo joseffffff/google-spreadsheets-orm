@@ -2,6 +2,7 @@ name: Publish release 🚀
 on:
   release:
     types: [published]
+permissions: write-all
 jobs:
   publish:
     runs-on: ubuntu-latest
