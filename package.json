@@ -23,7 +23,10 @@
     "spreadsheets",
     "google spreadsheets"
   ],
-  "author": "",
+  "author": "joseffffff",
+  "repository": {
+    "url": "https://github.com/joseffffff/google-spreadsheets-orm"
+  },
   "license": "MIT",
   "dependencies": {
     "googleapis": "^134.0.0",
