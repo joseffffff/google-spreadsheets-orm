@@ -2,9 +2,7 @@
   "compilerOptions": {
     "experimentalDecorators": true,
     "target": "ES2020",
-    "lib": [
-      "esnext"
-    ],
+    "lib": ["esnext"],
     "allowJs": false,
     "skipLibCheck": true,
     "esModuleInterop": true,
@@ -19,12 +17,8 @@
     "noEmit": false,
     "declaration": true,
     "rootDir": "./src/",
-    "outFile": "./dist/index.js",
+    "outFile": "./dist/index.js"
   },
-  "typeRoots": [
-    "node_modules/@types"
-  ],
-  "include": [
-    "src"
-  ]
+  "typeRoots": ["node_modules/@types"],
+  "include": ["src"]
 }
