@@ -15,9 +15,9 @@ jobs:
       - name: Install dependencies
         run: npm install
       - name: Bump version
-        run: npm version "${{ github.ref_name }}"
+        run: npm version --no-git-tag-version "${{ github.ref_name }}"
       - name: Commit & Push changes
-        uses: actions-js/push@v1.4
+        uses: actions-js/push@v1.5
         with:
           message: 'New release ${{ github.ref_name }}'
           github_token: ${{ secrets.GITHUB_TOKEN }}
