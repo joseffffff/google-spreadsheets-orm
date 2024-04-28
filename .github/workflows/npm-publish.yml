@@ -1,7 +1,7 @@
 name: Publish release 🚀
 on:
   release:
-    types: [prereleased]
+    types: [published]
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -19,7 +19,7 @@ jobs:
       - name: Commit & Push changes
         uses: actions-js/push@master
         with:
-          message: "New release ${{ github.ref_name }}"
+          message: 'New release ${{ github.ref_name }}'
           github_token: ${{ secrets.GITHUB_TOKEN }}
       - run: npm publish
         env:
