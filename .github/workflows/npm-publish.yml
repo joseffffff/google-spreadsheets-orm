@@ -1,0 +1,26 @@
+name: Publish release 🚀
+on:
+  release:
+    types: [prereleased]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18.12.0
+      - name: Install dependencies
+        run: npm install
+      - name: Bump version
+        run: npm version "${{ github.ref_name }}""
+      - name: Commit & Push changes
+        uses: actions-js/push@master
+        with:
+          message: "New release ${{ github.ref_name }}"
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+      - run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
