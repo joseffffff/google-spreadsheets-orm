@@ -21,6 +21,8 @@ jobs:
         with:
           message: 'New release ${{ github.ref_name }}'
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          author_email: 'github-actions[bot]@users.noreply.github.com'
+          author_name: 'github-actions[bot]'
       - run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
