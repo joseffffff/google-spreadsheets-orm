@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "experimentalDecorators": true,
+    "target": "ES2016",
+    "lib": ["esnext"],
+    "allowJs": false,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": false,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "module": "NodeNext",
+    "moduleResolution": "nodenext",
+    "isolatedModules": false,
+    "noEmit": false,
+    "declaration": true,
+    "rootDir": "./src/",
+    "outDir": "./dist"
+  },
+  "typeRoots": ["node_modules/@types"],
+  "include": ["src"]
+}

@@ -1,0 +1,52 @@
+{
+  "name": "google-spreadsheets-orm",
+  "version": "0.0.7",
+  "description": "Production-ready ORM applying data-mapper pattern to consume google spreadsheets.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "jest",
+    "lint": "eslint .",
+    "lint:tsc": "tsc --noemit",
+    "prettier": "prettier --check .",
+    "prettier:fix": "prettier --write .",
+    "build": "tsc --build tsconfig.json ."
+  },
+  "engines": {
+    "npm": ">=8.0.0",
+    "node": ">=14.0.0"
+  },
+  "keywords": [
+    "orm",
+    "data mapper",
+    "spreadsheets",
+    "google spreadsheets"
+  ],
+  "author": "joseffffff",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/joseffffff/google-spreadsheets-orm.git"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "googleapis": "^134.0.0",
+    "luxon": "^3.4.4"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.24.4",
+    "@babel/preset-env": "^7.24.4",
+    "@babel/preset-typescript": "^7.24.1",
+    "@types/jest": "^29.5.12",
+    "@types/luxon": "^3.4.2",
+    "@typescript-eslint/eslint-plugin": "^7.7.1",
+    "eslint": "^8.56.1",
+    "eslint-config-prettier": "^9.1.0",
+    "jest": "^29.7.0",
+    "jest-mock-extended": "^3.0.5",
+    "prettier": "^3.2.5",
+    "typescript": "^5.4.4"
+  }
+}
