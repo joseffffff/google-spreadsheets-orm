@@ -70,7 +70,7 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
         insertDataOption: 'INSERT_ROWS',
         valueInputOption: 'USER_ENTERED',
         requestBody: {
-          values: [ toSave ],
+          values: [toSave],
         },
       }),
     );
