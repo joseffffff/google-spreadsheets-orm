@@ -1,6 +1,9 @@
-import { sheets_v4 } from 'googleapis';
+import { google, sheets_v4 } from 'googleapis';
 import { Logger } from './utils/Logger';
 import { GoogleSpreadsheetOrmError } from './errors/GoogleSpreadsheetOrmError';
+import { Options } from './Options';
+import { BaseModel } from './BaseModel';
+import { InvalidConfigurationError } from './errors/InvalidConfigurationError';
 
 export class GoogleSheetClientProvider {
   private readonly QUOTA_EXCEEDED_ERROR: string = 'Quota exceeded for quota metric';
@@ -41,5 +44,27 @@ export class GoogleSheetClientProvider {
     }
 
     throw new GoogleSpreadsheetOrmError('Quota error on database read.');
+  }
+
+  public static fromOptions<T extends BaseModel>(
+    { auth, sheetClients }: Options<T>,
+    logger: Logger,
+  ): GoogleSheetClientProvider {
+    const auths = Array.isArray(auth) ? auth : !!auth ? [auth] : [];
+    const sheetClientsToUse: sheets_v4.Sheets[] =
+      Array.isArray(sheetClients) && sheetClients.length > 0
+        ? sheetClients
+        : auths.map(auth =>
+            google.sheets({
+              version: 'v4',
+              auth,
+            }),
+          );
+
+    if (sheetClientsToUse.length === 0) {
+      throw new InvalidConfigurationError('No auth nor sheetClient provided.');
+    }
+
+    return new GoogleSheetClientProvider(sheetClientsToUse, logger);
   }
 }

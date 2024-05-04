@@ -4,6 +4,7 @@ import { FieldType } from '../src/serialization/FieldType';
 import { mock, MockProxy } from 'jest-mock-extended';
 import Resource$Spreadsheets$Values = sheets_v4.Resource$Spreadsheets$Values;
 import Resource$Spreadsheets = sheets_v4.Resource$Spreadsheets;
+import Params$Resource$Spreadsheets$Values$Append = sheets_v4.Params$Resource$Spreadsheets$Values$Append;
 
 const SPREADSHEET_ID = 'spreadsheetId';
 const SHEET = 'test_entities';
@@ -33,11 +34,12 @@ describe(GoogleSpreadsheetOrm.name, () => {
     secondClient.spreadsheets = mock<Resource$Spreadsheets>();
     secondClient.spreadsheets.values = mock<Resource$Spreadsheets$Values>();
 
-    sheetClients = [firstClient, secondClient];
+    sheetClients = [ firstClient, secondClient ];
     sut = new GoogleSpreadsheetOrm<TestEntity>({
       spreadsheetId: SPREADSHEET_ID,
       sheet: SHEET,
       sheetClients,
+      verbose: true,
       castings: {
         createdAt: FieldType.DATE,
         jsonField: FieldType.JSON,
@@ -49,7 +51,7 @@ describe(GoogleSpreadsheetOrm.name, () => {
 
   test('findAll should correctly parse all values', async () => {
     const rawValues = [
-      ['id', 'createdAt', 'name', 'jsonField', 'current', 'year'],
+      [ 'id', 'createdAt', 'name', 'jsonField', 'current', 'year' ],
       [
         'ae222b54-182f-4958-b77f-26a3a04dff32',
         '13/10/2022 08:11:23',
@@ -67,8 +69,8 @@ describe(GoogleSpreadsheetOrm.name, () => {
         'true',
         '',
       ],
-      ['ae222b54-182f-4958-b77f-26a3a04dff34', '29/12/2023 17:47:04', 'Donh Joe 2', '{}', '', undefined],
-      ['ae222b54-182f-4958-b77f-26a3a04dff35', '29/12/2023 17:47:04', 'Donh Joe 3', '{}', undefined, '2023'],
+      [ 'ae222b54-182f-4958-b77f-26a3a04dff34', '29/12/2023 17:47:04', 'Donh Joe 2', '{}', '', undefined ],
+      [ 'ae222b54-182f-4958-b77f-26a3a04dff35', '29/12/2023 17:47:04', 'Donh Joe 3', '{}', undefined, '2023' ],
     ];
 
     sheetClients
@@ -88,7 +90,7 @@ describe(GoogleSpreadsheetOrm.name, () => {
         id: 'ae222b54-182f-4958-b77f-26a3a04dff32',
         createdAt: new Date('2022-10-13 08:11:23'),
         name: 'John Doe',
-        jsonField: [1, 2, 3, 4, 5, 6],
+        jsonField: [ 1, 2, 3, 4, 5, 6 ],
         current: false,
         year: 2023,
       },
@@ -119,4 +121,62 @@ describe(GoogleSpreadsheetOrm.name, () => {
     ];
     expect(entities).toStrictEqual(expectedValues);
   });
+
+  test('create method should insert a new row', async () => {
+    // Configure table headers, so that save method can correctly match headers positions.
+    const rawValues = [ [ 'id', 'createdAt', 'name', 'jsonField', 'current', 'year' ] ];
+    mockValuesResponse(rawValues);
+
+    const entity: TestEntity = {
+      id: 'ae222b54-182f-4958-b77f-26a3a04dff35',
+      createdAt: new Date('2023-12-29 17:47:04'),
+      name: 'John Doe',
+      jsonField: {
+        a: 'b',
+        c: [ 1, 2, 3 ],
+      },
+      current: undefined,
+      year: 2023,
+    };
+
+    await sut.create(entity);
+
+    expect(getValuesUsedSheetClient()?.spreadsheets.values.append).toHaveBeenCalledWith({
+      spreadsheetId: SPREADSHEET_ID,
+      range: SHEET,
+      insertDataOption: 'INSERT_ROWS',
+      valueInputOption: 'USER_ENTERED',
+      requestBody: {
+        values: [
+          [
+            'ae222b54-182f-4958-b77f-26a3a04dff35', // id
+            '29/12/2023 17:47:04', // createdAt
+            'John Doe', // name
+            // language=json
+            '{"a":"b","c":[1,2,3]}', // jsonField
+            '', // current
+            '2023', // year
+          ],
+        ],
+      },
+    } as Params$Resource$Spreadsheets$Values$Append);
+  });
+
+  function mockValuesResponse(rawValues: string[][]): void {
+    sheetClients
+      .map(s => s.spreadsheets.values as MockProxy<sheets_v4.Resource$Spreadsheets$Values>)
+      .forEach(mockValuesClient =>
+        mockValuesClient.get.mockResolvedValue({
+          data: {
+            values: rawValues,
+          },
+        } as never),
+      );
+  }
+
+  function getValuesUsedSheetClient(): sheets_v4.Sheets | undefined {
+    return sheetClients
+      // @ts-ignore
+      .find(client => client.spreadsheets.values.append.mock.calls.length > 0);
+  }
 });
