@@ -82,9 +82,7 @@ Retrieves all entities from the specified sheet, parsing and serializing them ac
 the Castings configuration.
 
 ```typescript
-findAll()
-:
-Promise<T[]>
+findAll(): Promise<T[]>
 ```
 
 - **Returns**: A Promise that resolves to an array of entities of type `T`, representing all rows retrieved from the
