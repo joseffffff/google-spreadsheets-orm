@@ -14,7 +14,7 @@ import { Options } from './Options';
 import { BaseModel } from './BaseModel';
 import Schema$ValueRange = sheets_v4.Schema$ValueRange;
 
-export class GoogleSpreadsheetOrm<T extends BaseModel> {
+export class GoogleSpreadsheetsOrm<T extends BaseModel> {
   private readonly logger: Logger;
   private readonly sheetsClientProvider: GoogleSheetClientProvider;
   private readonly serializers: Map<string, Serializer<unknown>> = new Map();
@@ -33,11 +33,32 @@ export class GoogleSpreadsheetOrm<T extends BaseModel> {
     this.instantiator = options.instantiator ?? (r => r as T);
   }
 
+  /**
+   * Retrieves all entities from the specified sheet, parsing and serializing them according to the field types defined in the Castings configuration.
+   *
+   * @remarks
+   * This method fetches all rows from the specified sheet in the associated spreadsheet.
+   * It then parses the retrieved data and serializes it into entities according to the field types defined in the Castings configuration.
+   *
+   * @returns A Promise that resolves to an array of entities of type T, representing all rows retrieved from the sheet.
+   */
   public async findAll(): Promise<T[]> {
     const { data, headers } = await this.findTableData();
     return this.rowsToEntities(data, headers);
   }
 
+  /**
+   * Creates a new row in the specified sheet with the provided entity data.
+   *
+   * @param entity - The entity object to persist as a new row in the sheet.
+   *
+   * @remarks
+   * This method appends a new row to the end of the specified sheet in the associated spreadsheet.
+   * It retrieves the headers of the sheet to ensure proper alignment of data.
+   * Quota retries are automatically handled to manage API rate limits.
+   *
+   * @returns A Promise that resolves when the row creation process is completed successfully.
+   */
   public async create(entity: T): Promise<void> {
     const headers: string[] = await this.sheetHeaders();
     const toSave: ParsedSpreadsheetCellValue[] = this.toSheetArrayFromHeaders(entity, headers);
@@ -49,7 +70,7 @@ export class GoogleSpreadsheetOrm<T extends BaseModel> {
         insertDataOption: 'INSERT_ROWS',
         valueInputOption: 'USER_ENTERED',
         requestBody: {
-          values: [toSave],
+          values: [ toSave ],
         },
       }),
     );
@@ -70,20 +91,6 @@ export class GoogleSpreadsheetOrm<T extends BaseModel> {
   //       // @ts-ignore
   //       Object.entries(query).every(([ key, inValues ]) => inValues.includes(entity[key])),
   //   );
-  // }
-  //
-  // public save(entity: T): Promise<boolean> {
-  //   entity.updatedAt = new Date();
-  //
-  //   if (!entity.id) {
-  //     this.logger.log('Entity has no id, creating new row.');
-  //     entity.id = this.uuidGenerator.generate();
-  //     entity.createdAt = new Date();
-  //     return this.create(entity);
-  //   }
-  //
-  //   this.logger.log('Entity has id, updating row.');
-  //   return this.update(entity);
   // }
   //
   // public async createAll(entities: T[]): Promise<boolean> {
@@ -272,7 +279,6 @@ export class GoogleSpreadsheetOrm<T extends BaseModel> {
   //
   //   return true;
   // }
-  //
 
   private async findTableData(): Promise<{ headers: string[]; data: string[][] }> {
     const data: string[][] = await this.allSheetData();

@@ -1,5 +1,5 @@
 import { sheets_v4 } from 'googleapis';
-import { GoogleSpreadsheetOrm } from '../src/GoogleSpreadsheetOrm';
+import { GoogleSpreadsheetsOrm } from '../src/GoogleSpreadsheetsOrm';
 import { FieldType } from '../src/serialization/FieldType';
 import { mock, MockProxy } from 'jest-mock-extended';
 import Resource$Spreadsheets$Values = sheets_v4.Resource$Spreadsheets$Values;
@@ -21,9 +21,9 @@ interface TestEntity {
   readonly year?: number;
 }
 
-describe(GoogleSpreadsheetOrm.name, () => {
+describe(GoogleSpreadsheetsOrm.name, () => {
   let sheetClients: MockProxy<sheets_v4.Sheets>[];
-  let sut: GoogleSpreadsheetOrm<TestEntity>;
+  let sut: GoogleSpreadsheetsOrm<TestEntity>;
 
   beforeEach(() => {
     const firstClient = mock<sheets_v4.Sheets>();
@@ -35,7 +35,7 @@ describe(GoogleSpreadsheetOrm.name, () => {
     secondClient.spreadsheets.values = mock<Resource$Spreadsheets$Values>();
 
     sheetClients = [ firstClient, secondClient ];
-    sut = new GoogleSpreadsheetOrm<TestEntity>({
+    sut = new GoogleSpreadsheetsOrm<TestEntity>({
       spreadsheetId: SPREADSHEET_ID,
       sheet: SHEET,
       sheetClients,
