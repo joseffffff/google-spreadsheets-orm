@@ -1,8 +1,11 @@
 # Google Spreadsheet ORM
 
-Production-ready lightweight Node.js library simplifying Google Sheets integration, offering a robust
+Lightweight Node.js library simplifying Google Sheets integration, offering a robust
 object-relational mapping (ORM) interface, following the data-mapper pattern.
 This library enables seamless CRUD operations, including batch operations, ensuring a strict Typescript typing.
+
+> [!WARNING]  
+> This library is still under construction, CRUD functionality will be available in a few weeks.
 
 ## Quickstart
 
@@ -44,7 +47,7 @@ const orm = new GoogleSpreadsheetOrm<CustomerModel>({
 });
 
 // returns all customers in customers sheet, as an array of `CustomerModel`
-const sheetCustomers = await orm.findAll();
+const sheetCustomers = await orm.find();
 
 // Adds a new row to customers sheet
 await orm.create({
@@ -54,12 +57,52 @@ await orm.create({
 });
 ```
 
-### Authentication options
+### Authentication Options
 
-TODO
+GoogleSpreadsheetORM supports various authentication options for interacting with Google Sheets API. You can provide
+authentication options through the `auth` or `sheetClients` properties in the `Options` configuration.
 
-## API
+#### Auth
 
-### `findAll()`
+The `auth` property accepts either a single authentication option or an array of authentication options allowed in
+Google APIs libraries. These options are used to create a `sheets_v4.Sheets` instance for each authentication object
+provided. Operations are load-balanced across these clients, and quota retries for API rate limiting are automatically
+handled when multiple authentication options are provided.
 
-Returns all sheet content as an array of the provided type.
+#### Sheet Clients
+
+Alternatively, you can directly provide an array of `sheets_v4.Sheets` client instances through the `sheetClients`
+property. GoogleSpreadsheetORM distributes operations among the provided clients for load balancing. Quota retries for
+API rate limiting are automatically handled when using multiple clients.
+
+## Methods Overview
+
+GoogleSpreadsheetORM provides several methods for interacting with Google Sheets. Here's an overview of each method:
+
+### `find()`
+
+Retrieves all entities from the specified sheet, parsing and serializing them according to the field types defined in
+the Castings configuration.
+
+```typescript
+find(): Promise<T[]>
+```
+
+- **Returns**: A Promise that resolves to an array of entities of type `T`, representing all rows retrieved from the
+  sheet.
+
+### `create(entity: T)`
+
+Creates a new row in the specified sheet with the provided entity data.
+
+```typescript
+create(entity: T): Promise<void>
+```
+
+- **Parameters**:
+  - `entity`: The entity object to persist as a new row in the sheet.
+- **Remarks**:
+  - This method appends a new row at the end of the specified sheet in the associated spreadsheet.
+  - It retrieves the headers of the sheet to ensure proper alignment of data.
+  - The entity object is converted into an array of cell values according to the sheet headers.
+  - Quota retries are automatically handled to manage API rate limits.

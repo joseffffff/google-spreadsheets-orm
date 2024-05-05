@@ -11,9 +11,10 @@ import { NumberSerializer } from './serialization/NumberSerializer';
 import { GaxiosResponse } from 'gaxios';
 import { GoogleSpreadsheetOrmError } from './errors/GoogleSpreadsheetOrmError';
 import { Options } from './Options';
+import { BaseModel } from './BaseModel';
 import Schema$ValueRange = sheets_v4.Schema$ValueRange;
 
-export class GoogleSpreadsheetOrm<T extends { readonly id: string }> {
+export class GoogleSpreadsheetsOrm<T extends BaseModel> {
   private readonly logger: Logger;
   private readonly sheetsClientProvider: GoogleSheetClientProvider;
   private readonly serializers: Map<string, Serializer<unknown>> = new Map();
@@ -22,23 +23,7 @@ export class GoogleSpreadsheetOrm<T extends { readonly id: string }> {
 
   constructor(private readonly options: Options<T>) {
     this.logger = new Logger(options.verbose);
-
-    const auths = Array.isArray(options.auth) ? options.auth : !!options.auth ? [options.auth] : [];
-    const sheetClients: sheets_v4.Sheets[] =
-      Array.isArray(options.sheetClients) && options.sheetClients.length > 0
-        ? options.sheetClients
-        : auths.map(auth =>
-            google.sheets({
-              version: 'v4',
-              auth,
-            }),
-          );
-
-    if (sheetClients.length === 0) {
-      // throw
-    }
-
-    this.sheetsClientProvider = new GoogleSheetClientProvider(sheetClients, this.logger);
+    this.sheetsClientProvider = GoogleSheetClientProvider.fromOptions(options, this.logger);
 
     this.serializers.set(FieldType.JSON, new JsonFieldSerializer());
     this.serializers.set(FieldType.DATE, new DateFieldSerializer(this.logger));
@@ -48,9 +33,47 @@ export class GoogleSpreadsheetOrm<T extends { readonly id: string }> {
     this.instantiator = options.instantiator ?? (r => r as T);
   }
 
-  public async findAll(): Promise<T[]> {
+  /**
+   * Retrieves all entities from the specified sheet, parsing and serializing them according to the field types defined in the Castings configuration.
+   *
+   * @remarks
+   * This method fetches all rows from the specified sheet in the associated spreadsheet.
+   * It then parses the retrieved data and serializes it into entities according to the field types defined in the Castings configuration.
+   *
+   * @returns A Promise that resolves to an array of entities of type T, representing all rows retrieved from the sheet.
+   */
+  public async find(): Promise<T[]> {
     const { data, headers } = await this.findTableData();
     return this.rowsToEntities(data, headers);
+  }
+
+  /**
+   * Creates a new row in the specified sheet with the provided entity data.
+   *
+   * @param entity - The entity object to persist as a new row in the sheet.
+   *
+   * @remarks
+   * This method appends a new row to the end of the specified sheet in the associated spreadsheet.
+   * It retrieves the headers of the sheet to ensure proper alignment of data.
+   * Quota retries are automatically handled to manage API rate limits.
+   *
+   * @returns A Promise that resolves when the row creation process is completed successfully.
+   */
+  public async create(entity: T): Promise<void> {
+    const headers: string[] = await this.sheetHeaders();
+    const toSave: ParsedSpreadsheetCellValue[] = this.toSheetArrayFromHeaders(entity, headers);
+
+    await this.sheetsClientProvider.handleQuotaRetries(sheetsClient =>
+      sheetsClient.spreadsheets.values.append({
+        spreadsheetId: this.options.spreadsheetId,
+        range: this.options.sheet,
+        insertDataOption: 'INSERT_ROWS',
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: [toSave],
+        },
+      }),
+    );
   }
 
   // public async findByColumns(query: Query<T>): Promise<T[]> {
@@ -70,20 +93,6 @@ export class GoogleSpreadsheetOrm<T extends { readonly id: string }> {
   //   );
   // }
   //
-  // public save(entity: T): Promise<boolean> {
-  //   entity.updatedAt = new Date();
-  //
-  //   if (!entity.id) {
-  //     this.logger.log('Entity has no id, creating new row.');
-  //     entity.id = this.uuidGenerator.generate();
-  //     entity.createdAt = new Date();
-  //     return this.create(entity);
-  //   }
-  //
-  //   this.logger.log('Entity has id, updating row.');
-  //   return this.update(entity);
-  // }
-  //
   // public async createAll(entities: T[]): Promise<boolean> {
   //   if (entities.length === 0) {
   //     return true;
@@ -96,7 +105,7 @@ export class GoogleSpreadsheetOrm<T extends { readonly id: string }> {
   //   const { headers } = await this.findTableData();
   //
   //   const entitiesDatabaseArrays: ParsedSpreadsheetCellValue[][] = entities.map(entity =>
-  //     this.toDatabaseArrayFromHeaders(entity, headers),
+  //     this.toSheetArrayFromHeaders(entity, headers),
   //   );
   //
   //   await this.sheetsClientProvider.handleQuotaRetries(sheetsClient =>
@@ -214,25 +223,25 @@ export class GoogleSpreadsheetOrm<T extends { readonly id: string }> {
   //
   //   throw new GoogleSpreadsheetOrmError('Not found');
   // }
-  //
-  // private toDatabaseArrayFromHeaders(entity: T, tableHeaders: string[]): ParsedSpreadsheetCellValue[] {
-  //   return tableHeaders.map(header => {
-  //     const castingType: string | undefined = this.options.castings[header as keyof T];
-  //     const entityValue = entity[header as keyof T] as ParsedSpreadsheetCellValue | undefined;
-  //
-  //     if (!!castingType) {
-  //       const serializer = this.serializers.get(castingType);
-  //
-  //       if (!serializer) {
-  //         throw new GoogleSpreadsheetOrmError(`Serializer for type ${castingType} not found.`);
-  //       }
-  //
-  //       return serializer.toSpreadsheetValue(entityValue);
-  //     }
-  //
-  //     return entityValue || '';
-  //   });
-  // }
+
+  private toSheetArrayFromHeaders(entity: T, tableHeaders: string[]): ParsedSpreadsheetCellValue[] {
+    return tableHeaders.map(header => {
+      const castingType: string | undefined = this.options?.castings?.[header as keyof T];
+      const entityValue = entity[header as keyof T] as ParsedSpreadsheetCellValue | undefined;
+
+      if (!!castingType) {
+        const serializer = this.serializers.get(castingType);
+
+        if (!serializer) {
+          throw new GoogleSpreadsheetOrmError(`Serializer for type ${castingType} not found.`);
+        }
+
+        return serializer.toSpreadsheetValue(entityValue);
+      }
+
+      return entityValue || '';
+    });
+  }
 
   private rowsToEntities(spreadsheetDataRows: string[][], headers: string[]): T[] {
     return spreadsheetDataRows.map(row => this.rowToEntity(row, headers));
@@ -270,25 +279,6 @@ export class GoogleSpreadsheetOrm<T extends { readonly id: string }> {
   //
   //   return true;
   // }
-  //
-  // private async create(entity: T): Promise<boolean> {
-  //   const headers: string[] = await this.sheetHeaders();
-  //   const toSave: ParsedSpreadsheetCellValue[] = this.toDatabaseArrayFromHeaders(entity, headers);
-  //
-  //   await this.sheetsClientProvider.handleQuotaRetries(sheetsClient =>
-  //     sheetsClient.spreadsheets.values.append({
-  //       spreadsheetId: this.spreadsheetId,
-  //       range: this.sheet,
-  //       insertDataOption: 'INSERT_ROWS',
-  //       valueInputOption: 'USER_ENTERED',
-  //       requestBody: {
-  //         values: [ toSave ],
-  //       },
-  //     }),
-  //   );
-  //
-  //   return true;
-  // }
 
   private async findTableData(): Promise<{ headers: string[]; data: string[][] }> {
     const data: string[][] = await this.allSheetData();
@@ -307,26 +297,26 @@ export class GoogleSpreadsheetOrm<T extends { readonly id: string }> {
     });
   }
 
-  // private async sheetHeaders(): Promise<string[]> {
-  //   return this.sheetsClientProvider.handleQuotaRetries(async sheetsClient => {
-  //     this.logger.log(`Reading headers from table=${this.sheet}`);
-  //     const db: GaxiosResponse<Schema$ValueRange> = await sheetsClient.spreadsheets.values.get({
-  //       spreadsheetId: this.spreadsheetId,
-  //       range: `${this.sheet}!A1:1`, // users!A1:1
-  //     });
-  //
-  //     const values = db.data.values;
-  //
-  //     if (values && values.length > 0) {
-  //       return values[0] as string[];
-  //     }
-  //
-  //     return []; // throw?
-  //   });
-  // }
-  //
+  private async sheetHeaders(): Promise<string[]> {
+    return this.sheetsClientProvider.handleQuotaRetries(async sheetsClient => {
+      this.logger.log(`Reading headers from table=${this.options.sheet}`);
+      const db: GaxiosResponse<Schema$ValueRange> = await sheetsClient.spreadsheets.values.get({
+        spreadsheetId: this.options.spreadsheetId,
+        range: `${this.options.sheet}!A1:1`, // users!A1:1
+      });
+
+      const values = db.data.values;
+
+      if (values && values.length > 0) {
+        return values[0] as string[];
+      }
+
+      throw new GoogleSpreadsheetOrmError(`Headers row not present in sheet ${this.options.sheet}`);
+    });
+  }
+
   // private async replaceValues(rowNumber: number, headers: string[], entity: T): Promise<void> {
-  //   const values = this.toDatabaseArrayFromHeaders(entity, headers);
+  //   const values = this.toSheetArrayFromHeaders(entity, headers);
   //
   //   // Transform header indexes into letters, to build the range. Example: 0 -> A, 1 -> B
   //   const columns = headers.map((_, index) => (index + 10).toString(36).toUpperCase());
