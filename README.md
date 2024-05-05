@@ -1,8 +1,11 @@
 # Google Spreadsheet ORM
 
-Production-ready lightweight Node.js library simplifying Google Sheets integration, offering a robust
+Lightweight Node.js library simplifying Google Sheets integration, offering a robust
 object-relational mapping (ORM) interface, following the data-mapper pattern.
 This library enables seamless CRUD operations, including batch operations, ensuring a strict Typescript typing.
+
+> [!WARNING]  
+> This library is still under construction, CRUD functionality will be available in a few weeks.
 
 ## Quickstart
 
@@ -88,7 +91,7 @@ findAll(): Promise<T[]>
 - **Returns**: A Promise that resolves to an array of entities of type `T`, representing all rows retrieved from the
   sheet.
 
-## `create(entity: T)`
+### `create(entity: T)`
 
 Creates a new row in the specified sheet with the provided entity data.
 

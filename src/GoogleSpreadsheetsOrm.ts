@@ -42,7 +42,7 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
    *
    * @returns A Promise that resolves to an array of entities of type T, representing all rows retrieved from the sheet.
    */
-  public async findAll(): Promise<T[]> {
+  public async find(query = {}): Promise<T[]> {
     const { data, headers } = await this.findTableData();
     return this.rowsToEntities(data, headers);
   }
@@ -70,7 +70,7 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
         insertDataOption: 'INSERT_ROWS',
         valueInputOption: 'USER_ENTERED',
         requestBody: {
-          values: [toSave],
+          values: [ toSave ],
         },
       }),
     );
@@ -311,7 +311,7 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
         return values[0] as string[];
       }
 
-      return []; // throw?
+      throw new GoogleSpreadsheetOrmError(`Headers row not present in sheet ${this.options.sheet}`);
     });
   }
 
