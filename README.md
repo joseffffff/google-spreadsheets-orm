@@ -47,7 +47,7 @@ const orm = new GoogleSpreadsheetOrm<CustomerModel>({
 });
 
 // returns all customers in customers sheet, as an array of `CustomerModel`
-const sheetCustomers = await orm.findAll();
+const sheetCustomers = await orm.find();
 
 // Adds a new row to customers sheet
 await orm.create({
@@ -79,13 +79,13 @@ API rate limiting are automatically handled when using multiple clients.
 
 GoogleSpreadsheetORM provides several methods for interacting with Google Sheets. Here's an overview of each method:
 
-### `findAll()`
+### `find()`
 
 Retrieves all entities from the specified sheet, parsing and serializing them according to the field types defined in
 the Castings configuration.
 
 ```typescript
-findAll(): Promise<T[]>
+find(): Promise<T[]>
 ```
 
 - **Returns**: A Promise that resolves to an array of entities of type `T`, representing all rows retrieved from the

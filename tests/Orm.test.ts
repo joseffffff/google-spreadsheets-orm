@@ -49,7 +49,7 @@ describe(GoogleSpreadsheetsOrm.name, () => {
     });
   });
 
-  test('findAll should correctly parse all values', async () => {
+  test('find should correctly parse all values', async () => {
     const rawValues = [
       ['id', 'createdAt', 'name', 'jsonField', 'current', 'year'],
       [
