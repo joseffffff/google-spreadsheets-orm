@@ -42,7 +42,7 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
    *
    * @returns A Promise that resolves to an array of entities of type T, representing all rows retrieved from the sheet.
    */
-  public async findAll(query = {}): Promise<T[]> {
+  public async find(): Promise<T[]> {
     const { data, headers } = await this.findTableData();
     return this.rowsToEntities(data, headers);
   }

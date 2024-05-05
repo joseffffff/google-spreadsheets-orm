@@ -83,7 +83,7 @@ describe(GoogleSpreadsheetsOrm.name, () => {
         } as never),
       );
 
-    const entities = await sut.findAll();
+    const entities = await sut.find();
 
     const expectedValues: TestEntity[] = [
       {
