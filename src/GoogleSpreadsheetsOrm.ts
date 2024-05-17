@@ -91,8 +91,7 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
     const { data } = await this.findTableData();
     const rowNumber = this.rowNumber(data, entity);
 
-    const sheetId = await this.fetchSheetDetails()
-      .then(sheetDetails => sheetDetails.properties?.sheetId);
+    const sheetId = await this.fetchSheetDetails().then(sheetDetails => sheetDetails.properties?.sheetId);
 
     await this.sheetsClientProvider.handleQuotaRetries(sheetsClient =>
       sheetsClient.spreadsheets.batchUpdate({

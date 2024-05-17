@@ -36,7 +36,7 @@ describe(GoogleSpreadsheetsOrm.name, () => {
     secondClient.spreadsheets = mock<Resource$Spreadsheets>();
     secondClient.spreadsheets.values = mock<Resource$Spreadsheets$Values>();
 
-    sheetClients = [ firstClient, secondClient ];
+    sheetClients = [firstClient, secondClient];
     sut = new GoogleSpreadsheetsOrm<TestEntity>({
       spreadsheetId: SPREADSHEET_ID,
       sheet: SHEET,
@@ -53,7 +53,7 @@ describe(GoogleSpreadsheetsOrm.name, () => {
 
   test('find should correctly parse all values', async () => {
     const rawValues = [
-      [ 'id', 'createdAt', 'name', 'jsonField', 'current', 'year' ],
+      ['id', 'createdAt', 'name', 'jsonField', 'current', 'year'],
       [
         'ae222b54-182f-4958-b77f-26a3a04dff32',
         '13/10/2022 08:11:23',
@@ -71,8 +71,8 @@ describe(GoogleSpreadsheetsOrm.name, () => {
         'true',
         '',
       ],
-      [ 'ae222b54-182f-4958-b77f-26a3a04dff34', '29/12/2023 17:47:04', 'Donh Joe 2', '{}', '', undefined ],
-      [ 'ae222b54-182f-4958-b77f-26a3a04dff35', '29/12/2023 17:47:04', 'Donh Joe 3', '{}', undefined, '2023' ],
+      ['ae222b54-182f-4958-b77f-26a3a04dff34', '29/12/2023 17:47:04', 'Donh Joe 2', '{}', '', undefined],
+      ['ae222b54-182f-4958-b77f-26a3a04dff35', '29/12/2023 17:47:04', 'Donh Joe 3', '{}', undefined, '2023'],
     ];
 
     sheetClients
@@ -92,7 +92,7 @@ describe(GoogleSpreadsheetsOrm.name, () => {
         id: 'ae222b54-182f-4958-b77f-26a3a04dff32',
         createdAt: new Date('2022-10-13 08:11:23'),
         name: 'John Doe',
-        jsonField: [ 1, 2, 3, 4, 5, 6 ],
+        jsonField: [1, 2, 3, 4, 5, 6],
         current: false,
         year: 2023,
       },
@@ -126,7 +126,7 @@ describe(GoogleSpreadsheetsOrm.name, () => {
 
   test('create method should insert a new row', async () => {
     // Configure table headers, so that save method can correctly match headers positions.
-    const rawValues = [ [ 'id', 'createdAt', 'name', 'jsonField', 'current', 'year' ] ];
+    const rawValues = [['id', 'createdAt', 'name', 'jsonField', 'current', 'year']];
     mockValuesResponse(rawValues);
 
     const entity: TestEntity = {
@@ -135,7 +135,7 @@ describe(GoogleSpreadsheetsOrm.name, () => {
       name: 'John Doe',
       jsonField: {
         a: 'b',
-        c: [ 1, 2, 3 ],
+        c: [1, 2, 3],
       },
       current: undefined,
       year: 2023,
@@ -166,7 +166,7 @@ describe(GoogleSpreadsheetsOrm.name, () => {
 
   test('delete method should correctly delete the row with that id', async () => {
     mockValuesResponse([
-      [ 'id', 'createdAt', 'name', 'jsonField', 'current', 'year' ],
+      ['id', 'createdAt', 'name', 'jsonField', 'current', 'year'],
       [
         'ae222b54-182f-4958-b77f-26a3a04dff34', // id
         '29/12/2023 17:47:04', // createdAt
@@ -206,7 +206,7 @@ describe(GoogleSpreadsheetsOrm.name, () => {
       name: 'John Doe',
       jsonField: {
         a: 'b',
-        c: [ 1, 2, 3 ],
+        c: [1, 2, 3],
       },
       current: true,
       year: 2023,
