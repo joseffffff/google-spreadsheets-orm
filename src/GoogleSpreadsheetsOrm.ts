@@ -76,6 +76,45 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
     );
   }
 
+  /**
+   * Deletes the row associated with the provided entity in the specified sheet.
+   *
+   * @param entity - The entity object to delete
+   *
+   * @remarks
+   * It internally retrieves all data from the specified sheet.
+   * Quota retries are automatically handled to manage API rate limits.
+   *
+   * @returns A Promise that resolves when the row deletion process is completed successfully.
+   */
+  public async delete(entity: T): Promise<void> {
+    const { data } = await this.findTableData();
+    const rowNumber = this.rowNumber(data, entity);
+
+    const sheetId = await this.fetchSheetDetails()
+      .then(sheetDetails => sheetDetails.properties?.sheetId);
+
+    await this.sheetsClientProvider.handleQuotaRetries(sheetsClient =>
+      sheetsClient.spreadsheets.batchUpdate({
+        spreadsheetId: this.options.spreadsheetId,
+        requestBody: {
+          requests: [
+            {
+              deleteDimension: {
+                range: {
+                  sheetId,
+                  dimension: 'ROWS',
+                  startIndex: rowNumber - 1, // index, not a rowNumber here
+                  endIndex: rowNumber, // exclusive, to delete just one row
+                },
+              },
+            },
+          ],
+        },
+      }),
+    );
+  }
+
   // public async findByColumns(query: Query<T>): Promise<T[]> {
   //   return (
   //     (await this.findAll())
@@ -145,54 +184,24 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
   //
   //   return true;
   // }
+  //
+  private async fetchSheetDetails(): Promise<sheets_v4.Schema$Sheet> {
+    const sheets = await this.sheetsClientProvider.handleQuotaRetries(sheetsClient =>
+      sheetsClient.spreadsheets.get({
+        spreadsheetId: this.options.spreadsheetId,
+      }),
+    );
 
-  // public async delete(entity: T): Promise<boolean> {
-  //   const { data } = await this.findTableData();
-  //   const rowNumber = this.rowNumber(data, entity);
-  //
-  //   const sheetId = await this.fetchSheetDetails()
-  //     .then(sheetDetails => sheetDetails.properties?.sheetId);
-  //
-  //   await this.sheetsClientProvider.handleQuotaRetries(sheetsClient =>
-  //     sheetsClient.spreadsheets.batchUpdate({
-  //       spreadsheetId: this.spreadsheetId,
-  //       requestBody: {
-  //         requests: [
-  //           {
-  //             deleteDimension: {
-  //               range: {
-  //                 sheetId,
-  //                 dimension: 'ROWS',
-  //                 startIndex: rowNumber - 1, // index, not a rowNumber here
-  //                 endIndex: rowNumber, // exclusive, to delete just one row
-  //               },
-  //             },
-  //           },
-  //         ],
-  //       },
-  //     }),
-  //   );
-  //
-  //   return true;
-  // }
-  //
-  // private async fetchSheetDetails(): Promise<sheets_v4.Schema$Sheet> {
-  //   const sheets = await this.sheetsClientProvider.handleQuotaRetries(sheetsClient =>
-  //     sheetsClient.spreadsheets.get({
-  //       spreadsheetId: this.spreadsheetId,
-  //     }),
-  //   );
-  //
-  //   const sheetDetails: sheets_v4.Schema$Sheet | undefined = sheets.data.sheets?.find(
-  //     sheet => sheet.properties?.title === this.sheet,
-  //   );
-  //
-  //   if (!sheetDetails) {
-  //     throw new GoogleSpreadsheetOrmError(`Could not find sheet details for sheet ${this.sheet}`);
-  //   }
-  //
-  //   return sheetDetails;
-  // }
+    const sheetDetails: sheets_v4.Schema$Sheet | undefined = sheets.data.sheets?.find(
+      sheet => sheet.properties?.title === this.options.sheet,
+    );
+
+    if (!sheetDetails) {
+      throw new GoogleSpreadsheetOrmError(`Could not find sheet details for sheet ${this.options.sheet}`);
+    }
+
+    return sheetDetails;
+  }
   //
   // public deleteAll(entities: T[]): boolean {
   //   if (entities.length === 0) {
@@ -213,16 +222,16 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
   //   return true;
   // }
   //
-  // private rowNumber(data: ParsedSpreadsheetCellValue[][], entity: T): number {
-  //   for (let i = 0; i < data.length; i++) {
-  //     if (data[i][0] === entity.id) {
-  //       // +1 because no headers in array and +1 because row positions starts at 1
-  //       return i + 2;
-  //     }
-  //   }
-  //
-  //   throw new GoogleSpreadsheetOrmError('Not found');
-  // }
+  private rowNumber(data: ParsedSpreadsheetCellValue[][], entity: T): number {
+    for (let i = 0; i < data.length; i++) {
+      if (data[i][0] === entity.id) {
+        // +1 because no headers in array and +1 because row positions starts at 1
+        return i + 2;
+      }
+    }
+
+    throw new GoogleSpreadsheetOrmError('Not found');
+  }
 
   private toSheetArrayFromHeaders(entity: T, tableHeaders: string[]): ParsedSpreadsheetCellValue[] {
     return tableHeaders.map(header => {
