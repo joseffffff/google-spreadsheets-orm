@@ -53,7 +53,7 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
    * @param entity - The entity object to persist as a new row in the sheet.
    *
    * @remarks
-   * This method appends a new row to the end of the specified sheet in the associated spreadsheet.
+   * This method appends a new row at the end of the specified sheet in the associated spreadsheet.
    * It retrieves the headers of the sheet to ensure proper alignment of data.
    * Quota retries are automatically handled to manage API rate limits.
    *
@@ -102,8 +102,16 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
   }
 
   /**
+   * Creates a new row in the specified sheet for each entity provided in the *entities* array.
    *
-   * @param entities
+   * @param entities - An array of entities objects to persist as a new row in the sheet.
+   *
+   * @remarks
+   * This method appends a new row for each entity provided at the end of the specified sheet in the associated spreadsheet.
+   * It retrieves the headers of the sheet to ensure proper alignment of data.
+   * Quota retries are automatically handled to manage API rate limits.
+   *
+   * @returns A Promise that resolves when the row creation process is completed successfully.
    */
   public async createAll(entities: T[]): Promise<void> {
     if (entities.length === 0) {
