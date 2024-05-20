@@ -4,6 +4,8 @@ import { FieldType } from '../src/serialization/FieldType';
 import { mock, MockProxy } from 'jest-mock-extended';
 import Resource$Spreadsheets$Values = sheets_v4.Resource$Spreadsheets$Values;
 import Resource$Spreadsheets = sheets_v4.Resource$Spreadsheets;
+import Schema$Spreadsheet = sheets_v4.Schema$Spreadsheet;
+
 import Params$Resource$Spreadsheets$Values$Append = sheets_v4.Params$Resource$Spreadsheets$Values$Append;
 
 const SPREADSHEET_ID = 'spreadsheetId';
@@ -39,7 +41,7 @@ describe(GoogleSpreadsheetsOrm.name, () => {
       spreadsheetId: SPREADSHEET_ID,
       sheet: SHEET,
       sheetClients,
-      verbose: true,
+      verbose: false,
       castings: {
         createdAt: FieldType.DATE,
         jsonField: FieldType.JSON,
@@ -49,7 +51,7 @@ describe(GoogleSpreadsheetsOrm.name, () => {
     });
   });
 
-  test('find should correctly parse all values', async () => {
+  test('all should correctly parse all values', async () => {
     const rawValues = [
       ['id', 'createdAt', 'name', 'jsonField', 'current', 'year'],
       [
@@ -83,7 +85,7 @@ describe(GoogleSpreadsheetsOrm.name, () => {
         } as never),
       );
 
-    const entities = await sut.find();
+    const entities = await sut.all();
 
     const expectedValues: TestEntity[] = [
       {
@@ -162,6 +164,75 @@ describe(GoogleSpreadsheetsOrm.name, () => {
     } as Params$Resource$Spreadsheets$Values$Append);
   });
 
+  test('delete method should correctly delete the row with that id', async () => {
+    mockValuesResponse([
+      ['id', 'createdAt', 'name', 'jsonField', 'current', 'year'],
+      [
+        'ae222b54-182f-4958-b77f-26a3a04dff34', // id
+        '29/12/2023 17:47:04', // createdAt
+        'John Doe', // name
+        // language=json
+        '{"a":"b","c":[1,2,3]}', // jsonField
+        'true', // current
+        '2023', // year
+      ],
+      [
+        'ae222b54-182f-4958-b77f-26a3a04dff35', // id
+        '29/12/2023 17:47:04', // createdAt
+        'John Doe', // name
+        // language=json
+        '{"a":"b","c":[1,2,3]}', // jsonField
+        'true', // current
+        '2023', // year
+      ],
+    ]);
+
+    mockSpreadsheetDetailsResponse({
+      data: {
+        sheets: [
+          {
+            properties: {
+              title: SHEET,
+              sheetId: 1234,
+            },
+          },
+        ],
+      },
+    } as never);
+
+    const entity: TestEntity = {
+      id: 'ae222b54-182f-4958-b77f-26a3a04dff35',
+      createdAt: new Date('2023-12-29 17:47:04'),
+      name: 'John Doe',
+      jsonField: {
+        a: 'b',
+        c: [1, 2, 3],
+      },
+      current: true,
+      year: 2023,
+    };
+
+    await sut.delete(entity);
+
+    expect(getBatchUpdateUsedSheetClient()?.spreadsheets.batchUpdate).toHaveBeenCalledWith({
+      spreadsheetId: SPREADSHEET_ID,
+      requestBody: {
+        requests: [
+          {
+            deleteDimension: {
+              range: {
+                sheetId: 1234,
+                dimension: 'ROWS',
+                startIndex: 2, // row 3
+                endIndex: 3,
+              },
+            },
+          },
+        ],
+      },
+    });
+  });
+
   function mockValuesResponse(rawValues: string[][]): void {
     sheetClients
       .map(s => s.spreadsheets.values as MockProxy<sheets_v4.Resource$Spreadsheets$Values>)
@@ -174,11 +245,25 @@ describe(GoogleSpreadsheetsOrm.name, () => {
       );
   }
 
+  function mockSpreadsheetDetailsResponse(values: Schema$Spreadsheet): void {
+    sheetClients
+      .map(s => s.spreadsheets as MockProxy<sheets_v4.Resource$Spreadsheets>)
+      .forEach(mockSpreadsheetClients => mockSpreadsheetClients.get.mockResolvedValue(values as never));
+  }
+
   function getValuesUsedSheetClient(): sheets_v4.Sheets | undefined {
     return (
       sheetClients
         // @ts-ignore
         .find(client => client.spreadsheets.values.append.mock.calls.length > 0)
+    );
+  }
+
+  function getBatchUpdateUsedSheetClient(): sheets_v4.Sheets | undefined {
+    return (
+      sheetClients
+        // @ts-ignore
+        .find(client => client.spreadsheets.batchUpdate.mock.calls.length > 0)
     );
   }
 });
