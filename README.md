@@ -85,7 +85,7 @@ Retrieves all entities from the specified sheet, parsing and serializing them ac
 the Castings configuration.
 
 ```typescript
-const myEntities = await orm.all()
+const myEntities = await orm.all();
 ```
 
 - **Returns**: A Promise that resolves to an array of entities of type `T`, representing all rows retrieved from the
@@ -117,9 +117,9 @@ await orm.create({
 Deletes the entity provided from the spreadsheet.
 
 ```typescript
-const myEntities: YourEntity[] = await orm.all()
+const myEntities: YourEntity[] = await orm.all();
 
-const entityToDelete: YourEntity = myEntities.find(e => e.id === '1111-2222-3333-4444')
+const entityToDelete: YourEntity = myEntities.find(e => e.id === '1111-2222-3333-4444');
 
 await orm.delete(entityToDelete);
 ```
@@ -128,5 +128,5 @@ await orm.delete(entityToDelete);
   - `entity`: The entity object to delete in the sheet.
 - **Remarks**:
   - This method deletes the row in which the entity was persisted.
-  - It internally fetches the sheet data to find which row needs to delete. 
+  - It internally fetches the sheet data to find which row needs to delete.
   - Quota retries are automatically handled to manage API rate limits.
