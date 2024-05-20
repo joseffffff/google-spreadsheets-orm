@@ -47,7 +47,7 @@ const orm = new GoogleSpreadsheetOrm<CustomerModel>({
 });
 
 // returns all customers in customers sheet, as an array of `CustomerModel`
-const sheetCustomers = await orm.find();
+const sheetCustomers = await orm.all();
 
 // Adds a new row to customers sheet
 await orm.create({
@@ -79,13 +79,13 @@ API rate limiting are automatically handled when using multiple clients.
 
 GoogleSpreadsheetORM provides several methods for interacting with Google Sheets. Here's an overview of each method:
 
-### `find()`
+### `all()`
 
 Retrieves all entities from the specified sheet, parsing and serializing them according to the field types defined in
 the Castings configuration.
 
 ```typescript
-find(): Promise<T[]>
+const myEntities = await orm.all()
 ```
 
 - **Returns**: A Promise that resolves to an array of entities of type `T`, representing all rows retrieved from the
@@ -96,7 +96,12 @@ find(): Promise<T[]>
 Creates a new row in the specified sheet with the provided entity data.
 
 ```typescript
-create(entity: T): Promise<void>
+// Adds a new row to sheet
+await orm.create({
+  id: '1111-2222-3333-4444',
+  dateCreated: new Date(),
+  name: 'John Doe',
+});
 ```
 
 - **Parameters**:
@@ -105,4 +110,23 @@ create(entity: T): Promise<void>
   - This method appends a new row at the end of the specified sheet in the associated spreadsheet.
   - It retrieves the headers of the sheet to ensure proper alignment of data.
   - The entity object is converted into an array of cell values according to the sheet headers.
+  - Quota retries are automatically handled to manage API rate limits.
+
+### `delete(entity: T)`
+
+Deletes the entity provided from the spreadsheet.
+
+```typescript
+const myEntities: YourEntity[] = await orm.all()
+
+const entityToDelete: YourEntity = myEntities.find(e => e.id === '1111-2222-3333-4444')
+
+await orm.delete(entityToDelete);
+```
+
+- **Parameters**:
+  - `entity`: The entity object to delete in the sheet.
+- **Remarks**:
+  - This method deletes the row in which the entity was persisted.
+  - It internally fetches the sheet data to find which row needs to delete. 
   - Quota retries are automatically handled to manage API rate limits.

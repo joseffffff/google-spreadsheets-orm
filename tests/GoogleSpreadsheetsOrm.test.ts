@@ -51,7 +51,7 @@ describe(GoogleSpreadsheetsOrm.name, () => {
     });
   });
 
-  test('find should correctly parse all values', async () => {
+  test('all should correctly parse all values', async () => {
     const rawValues = [
       ['id', 'createdAt', 'name', 'jsonField', 'current', 'year'],
       [
@@ -85,7 +85,7 @@ describe(GoogleSpreadsheetsOrm.name, () => {
         } as never),
       );
 
-    const entities = await sut.find();
+    const entities = await sut.all();
 
     const expectedValues: TestEntity[] = [
       {

@@ -42,7 +42,7 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
    *
    * @returns A Promise that resolves to an array of entities of type T, representing all rows retrieved from the sheet.
    */
-  public async find(): Promise<T[]> {
+  public async all(): Promise<T[]> {
     const { data, headers } = await this.findTableData();
     return this.rowsToEntities(data, headers);
   }
@@ -114,23 +114,6 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
     );
   }
 
-  // public async findByColumns(query: Query<T>): Promise<T[]> {
-  //   return (
-  //     (await this.findAll())
-  //       // @ts-ignore
-  //       .filter(row => Object.entries(query).every(([ column, queryValue ]) => row[column] === queryValue))
-  //   );
-  // }
-  //
-  // public async findByColumnsIn(query: InQuery<T>): Promise<T[]> {
-  //   const entities = await this.findAll();
-  //   return entities.filter(
-  //     entity =>
-  //       // @ts-ignore
-  //       Object.entries(query).every(([ key, inValues ]) => inValues.includes(entity[key])),
-  //   );
-  // }
-  //
   // public async createAll(entities: T[]): Promise<boolean> {
   //   if (entities.length === 0) {
   //     return true;
