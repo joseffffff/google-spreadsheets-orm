@@ -37,7 +37,7 @@ describe(GoogleSpreadsheetsOrm.name, () => {
     secondClient.spreadsheets = mock<Resource$Spreadsheets>();
     secondClient.spreadsheets.values = mock<Resource$Spreadsheets$Values>();
 
-    sheetClients = [ firstClient, secondClient ];
+    sheetClients = [firstClient, secondClient];
     sut = new GoogleSpreadsheetsOrm<TestEntity>({
       spreadsheetId: SPREADSHEET_ID,
       sheet: SHEET,
@@ -54,7 +54,7 @@ describe(GoogleSpreadsheetsOrm.name, () => {
 
   test('all should correctly parse all values', async () => {
     const rawValues = [
-      [ 'id', 'createdAt', 'name', 'jsonField', 'current', 'year' ],
+      ['id', 'createdAt', 'name', 'jsonField', 'current', 'year'],
       [
         'ae222b54-182f-4958-b77f-26a3a04dff32',
         '13/10/2022 08:11:23',
@@ -72,8 +72,8 @@ describe(GoogleSpreadsheetsOrm.name, () => {
         'true',
         '',
       ],
-      [ 'ae222b54-182f-4958-b77f-26a3a04dff34', '29/12/2023 17:47:04', 'Donh Joe 2', '{}', '', undefined ],
-      [ 'ae222b54-182f-4958-b77f-26a3a04dff35', '29/12/2023 17:47:04', 'Donh Joe 3', '{}', undefined, '2023' ],
+      ['ae222b54-182f-4958-b77f-26a3a04dff34', '29/12/2023 17:47:04', 'Donh Joe 2', '{}', '', undefined],
+      ['ae222b54-182f-4958-b77f-26a3a04dff35', '29/12/2023 17:47:04', 'Donh Joe 3', '{}', undefined, '2023'],
     ];
 
     sheetClients
@@ -93,7 +93,7 @@ describe(GoogleSpreadsheetsOrm.name, () => {
         id: 'ae222b54-182f-4958-b77f-26a3a04dff32',
         createdAt: new Date('2022-10-13 08:11:23'),
         name: 'John Doe',
-        jsonField: [ 1, 2, 3, 4, 5, 6 ],
+        jsonField: [1, 2, 3, 4, 5, 6],
         current: false,
         year: 2023,
       },
@@ -127,7 +127,7 @@ describe(GoogleSpreadsheetsOrm.name, () => {
 
   test('create method should insert a new row', async () => {
     // Configure table headers, so that save method can correctly match headers positions.
-    const rawValues = [ [ 'id', 'createdAt', 'name', 'jsonField', 'current', 'year' ] ];
+    const rawValues = [['id', 'createdAt', 'name', 'jsonField', 'current', 'year']];
     mockValuesResponse(rawValues);
 
     const entity: TestEntity = {
@@ -136,7 +136,7 @@ describe(GoogleSpreadsheetsOrm.name, () => {
       name: 'John Doe',
       jsonField: {
         a: 'b',
-        c: [ 1, 2, 3 ],
+        c: [1, 2, 3],
       },
       current: undefined,
       year: 2023,
@@ -167,7 +167,7 @@ describe(GoogleSpreadsheetsOrm.name, () => {
 
   test('createAll method should insert a new row per each entity provided', async () => {
     // Configure table headers, so that save method can correctly match headers positions.
-    const rawValues = [ [ 'id', 'createdAt', 'name', 'jsonField', 'current', 'year' ] ];
+    const rawValues = [['id', 'createdAt', 'name', 'jsonField', 'current', 'year']];
     mockValuesResponse(rawValues);
 
     const entities: TestEntity[] = [
@@ -177,7 +177,7 @@ describe(GoogleSpreadsheetsOrm.name, () => {
         name: 'John Doe',
         jsonField: {
           a: 'b',
-          c: [ 1, 2, 3 ],
+          c: [1, 2, 3],
         },
         current: undefined,
         year: 2023,
@@ -186,7 +186,7 @@ describe(GoogleSpreadsheetsOrm.name, () => {
         id: 'ae222b54-182f-4958-b77f-26a3a04dff36',
         createdAt: new Date('2024-12-31 17:47:04'),
         name: 'John Doe 2',
-        jsonField: [ 1, 2, 3 ],
+        jsonField: [1, 2, 3],
         current: false,
         year: 2000,
       },
@@ -231,33 +231,35 @@ describe(GoogleSpreadsheetsOrm.name, () => {
   });
 
   test('createAll method should fail if some passed entity has undefined id', async () => {
-    await expect(sut.createAll([
-      {
-        // @ts-ignore
-        id: undefined,
-        createdAt: new Date('2023-12-29 17:47:04'),
-        name: 'John Doe',
-        jsonField: {
-          a: 'b',
-          c: [ 1, 2, 3 ],
+    await expect(
+      sut.createAll([
+        {
+          // @ts-ignore
+          id: undefined,
+          createdAt: new Date('2023-12-29 17:47:04'),
+          name: 'John Doe',
+          jsonField: {
+            a: 'b',
+            c: [1, 2, 3],
+          },
+          current: undefined,
+          year: 2023,
         },
-        current: undefined,
-        year: 2023,
-      },
-      {
-        id: 'ae222b54-182f-4958-b77f-26a3a04dff36',
-        createdAt: new Date('2024-12-31 17:47:04'),
-        name: 'John Doe 2',
-        jsonField: [ 1, 2, 3 ],
-        current: false,
-        year: 2000,
-      },
-    ])).rejects.toStrictEqual(new GoogleSpreadsheetOrmError('Cannot persist entities that have no id.'));
+        {
+          id: 'ae222b54-182f-4958-b77f-26a3a04dff36',
+          createdAt: new Date('2024-12-31 17:47:04'),
+          name: 'John Doe 2',
+          jsonField: [1, 2, 3],
+          current: false,
+          year: 2000,
+        },
+      ]),
+    ).rejects.toStrictEqual(new GoogleSpreadsheetOrmError('Cannot persist entities that have no id.'));
   });
 
   test('delete method should correctly delete the row with that id', async () => {
     mockValuesResponse([
-      [ 'id', 'createdAt', 'name', 'jsonField', 'current', 'year' ],
+      ['id', 'createdAt', 'name', 'jsonField', 'current', 'year'],
       [
         'ae222b54-182f-4958-b77f-26a3a04dff34', // id
         '29/12/2023 17:47:04', // createdAt
@@ -297,7 +299,7 @@ describe(GoogleSpreadsheetsOrm.name, () => {
       name: 'John Doe',
       jsonField: {
         a: 'b',
-        c: [ 1, 2, 3 ],
+        c: [1, 2, 3],
       },
       current: true,
       year: 2023,
@@ -325,7 +327,7 @@ describe(GoogleSpreadsheetsOrm.name, () => {
   });
 
   test('delete method should fail if provided entity is not part of the sheet', async () => {
-    mockValuesResponse([ [ 'id', 'createdAt', 'name', 'jsonField', 'current', 'year' ] ]);
+    mockValuesResponse([['id', 'createdAt', 'name', 'jsonField', 'current', 'year']]);
 
     mockSpreadsheetDetailsResponse({
       data: {
@@ -346,13 +348,15 @@ describe(GoogleSpreadsheetsOrm.name, () => {
       name: 'John Doe',
       jsonField: {
         a: 'b',
-        c: [ 1, 2, 3 ],
+        c: [1, 2, 3],
       },
       current: true,
       year: 2023,
     };
 
-    await expect(sut.delete(entity)).rejects.toStrictEqual(new GoogleSpreadsheetOrmError(`Provided entity is not part of '${SHEET}' sheet.`));
+    await expect(sut.delete(entity)).rejects.toStrictEqual(
+      new GoogleSpreadsheetOrmError(`Provided entity is not part of '${SHEET}' sheet.`),
+    );
   });
 
   function mockValuesResponse(rawValues: string[][]): void {

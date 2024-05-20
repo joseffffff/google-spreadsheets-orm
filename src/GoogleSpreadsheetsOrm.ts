@@ -60,7 +60,7 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
    * @returns A Promise that resolves when the row creation process is completed successfully.
    */
   public async create(entity: T): Promise<void> {
-    return this.createAll([ entity ]);
+    return this.createAll([entity]);
   }
 
   /**
