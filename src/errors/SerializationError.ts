@@ -1,4 +1,4 @@
-import { GoogleSpreadsheetOrmError } from '../errors/GoogleSpreadsheetOrmError';
+import { GoogleSpreadsheetOrmError } from './GoogleSpreadsheetOrmError';
 
 export class SerializationError extends GoogleSpreadsheetOrmError {
   constructor(message: string) {
