@@ -75,30 +75,7 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
    * @returns A Promise that resolves when the row deletion process is completed successfully.
    */
   public async delete(entity: T): Promise<void> {
-    const { data } = await this.findTableData();
-    const rowNumber = this.rowNumber(data, entity);
-
-    const sheetId = await this.fetchSheetDetails().then(sheetDetails => sheetDetails.properties?.sheetId);
-
-    await this.sheetsClientProvider.handleQuotaRetries(sheetsClient =>
-      sheetsClient.spreadsheets.batchUpdate({
-        spreadsheetId: this.options.spreadsheetId,
-        requestBody: {
-          requests: [
-            {
-              deleteDimension: {
-                range: {
-                  sheetId,
-                  dimension: 'ROWS',
-                  startIndex: rowNumber - 1, // index, not a rowNumber here
-                  endIndex: rowNumber, // exclusive, to delete just one row
-                },
-              },
-            },
-          ],
-        },
-      }),
-    );
+    return this.deleteAll([entity]);
   }
 
   /**
@@ -136,6 +113,47 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
         valueInputOption: 'USER_ENTERED',
         requestBody: {
           values: entitiesDatabaseArrays,
+        },
+      }),
+    );
+  }
+
+  /**
+   * Deletes the rows associated with the provided entities in the specified sheet.
+   *
+   * @param entities - An array of entities objects to delete
+   *
+   * @remarks
+   * @remarks
+   * It internally retrieves all data from the specified sheet.
+   * Quota retries are automatically handled to manage API rate limits.
+   *
+   * @returns A Promise that resolves when all the row deletion processes are completed successfully.
+   */
+  public async deleteAll(entities: T[]): Promise<void> {
+    if (entities.length === 0) {
+      return;
+    }
+
+    const { data } = await this.findTableData();
+    const rowNumbers = entities.map(entity => this.rowNumber(data, entity)).sort((a, b) => b - a); // rows are deleted from bottom to top
+
+    const sheetId = await this.fetchSheetDetails().then(sheetDetails => sheetDetails.properties?.sheetId);
+
+    await this.sheetsClientProvider.handleQuotaRetries(sheetsClient =>
+      sheetsClient.spreadsheets.batchUpdate({
+        spreadsheetId: this.options.spreadsheetId,
+        requestBody: {
+          requests: rowNumbers.map(rowNumber => ({
+            deleteDimension: {
+              range: {
+                sheetId,
+                dimension: 'ROWS',
+                startIndex: rowNumber - 1, // index, not a rowNumber here, so -1
+                endIndex: rowNumber, // exclusive, to delete just one row
+              },
+            },
+          })),
         },
       }),
     );
@@ -182,25 +200,6 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
     return sheetDetails;
   }
 
-  // public deleteAll(entities: T[]): boolean {
-  //   if (entities.length === 0) {
-  //     return true;
-  //   }
-  //
-  //   const sheet = this.sheet();
-  //
-  //   const data = this.allSheetDataFromSheet(sheet);
-  //   data.shift(); // Delete headers
-  //
-  //   const rowNumbers = entities.map(entity => this.rowNumber(data, entity)).sort((a, b) => b - a);
-  //
-  //   this.ioTimingsReporter.measureTime(InputOutputOperation.DB_DELETE_ALL, () =>
-  //     rowNumbers.forEach(rowNumber => sheet.deleteRow(rowNumber)),
-  //   );
-  //
-  //   return true;
-  // }
-  //
   private rowNumber(data: ParsedSpreadsheetCellValue[][], entity: T): number {
     const index = data.findIndex(row => row[0] === entity.id);
 

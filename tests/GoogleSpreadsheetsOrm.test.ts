@@ -359,6 +359,104 @@ describe(GoogleSpreadsheetsOrm.name, () => {
     );
   });
 
+  test('deleteAll method should correctly delete many rows', async () => {
+    mockValuesResponse([
+      ['id', 'createdAt', 'name', 'jsonField', 'current', 'year'],
+      [
+        'ae222b54-182f-4958-b77f-26a3a04dff34', // id
+        '29/12/2023 17:47:04', // createdAt
+        'John Doe', // name
+        // language=json
+        '{"a":"b","c":[1,2,3]}', // jsonField
+        'true', // current
+        '2023', // year
+      ],
+      [
+        'ae222b54-182f-4958-b77f-26a3a04dff35', // id
+        '29/12/2023 17:47:04', // createdAt
+        'John Doe', // name
+        // language=json
+        '{"a":"b","c":[1,2,3]}', // jsonField
+        'true', // current
+        '2023', // year
+      ],
+    ]);
+
+    mockSpreadsheetDetailsResponse({
+      data: {
+        sheets: [
+          {
+            properties: {
+              title: SHEET,
+              sheetId: 1234,
+            },
+          },
+        ],
+      },
+    } as never);
+
+    const entitiesToDelete: TestEntity[] = [
+      {
+        id: 'ae222b54-182f-4958-b77f-26a3a04dff34',
+        createdAt: new Date('2023-12-29 17:47:04'),
+        name: 'John Doe',
+        jsonField: {
+          a: 'b',
+          c: [1, 2, 3],
+        },
+        current: true,
+        year: 2023,
+      },
+      {
+        id: 'ae222b54-182f-4958-b77f-26a3a04dff35',
+        createdAt: new Date('2023-12-29 17:47:04'),
+        name: 'John Doe',
+        jsonField: {
+          a: 'b',
+          c: [1, 2, 3],
+        },
+        current: true,
+        year: 2023,
+      },
+    ];
+
+    await sut.deleteAll(entitiesToDelete);
+
+    expect(getBatchUpdateUsedSheetClient()?.spreadsheets.batchUpdate).toHaveBeenCalledWith({
+      spreadsheetId: SPREADSHEET_ID,
+      requestBody: {
+        requests: [
+          {
+            deleteDimension: {
+              range: {
+                sheetId: 1234,
+                dimension: 'ROWS',
+                startIndex: 2, // row 3
+                endIndex: 3,
+              },
+            },
+          },
+          {
+            deleteDimension: {
+              range: {
+                sheetId: 1234,
+                dimension: 'ROWS',
+                startIndex: 1, // row 3
+                endIndex: 2,
+              },
+            },
+          },
+        ],
+      },
+    });
+  });
+
+  test('deleteAll does not delete anything if no entities are passed', async () => {
+    await sut.deleteAll([]);
+    // @ts-ignore
+    expect(sheetClients.every(client => client.spreadsheets.batchUpdate.mock.calls.length === 0)).toBeTruthy();
+  });
+
   function mockValuesResponse(rawValues: string[][]): void {
     sheetClients
       .map(s => s.spreadsheets.values as MockProxy<sheets_v4.Resource$Spreadsheets$Values>)
