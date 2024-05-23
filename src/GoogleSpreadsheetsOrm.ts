@@ -136,7 +136,10 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
     }
 
     const { data } = await this.findTableData();
-    const rowNumbers = entities.map(entity => this.rowNumber(data, entity)).sort((a, b) => b - a); // rows are deleted from bottom to top
+    const rowNumbers = entities
+      .map(entity => this.rowNumber(data, entity))
+      // rows are deleted from bottom to top
+      .sort((a, b) => b - a);
 
     const sheetId = await this.fetchSheetDetails().then(sheetDetails => sheetDetails.properties?.sheetId);
 
