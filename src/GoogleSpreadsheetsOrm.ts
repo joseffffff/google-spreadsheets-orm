@@ -171,6 +171,10 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
     );
   }
 
+  /**
+   *
+   * @param entities
+   */
   public async updateAll(entities: T[]): Promise<void> {
     if (entities.length === 0) {
       return;
@@ -181,10 +185,26 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
     }
 
     const { headers, data } = await this.findTableData();
-    const replaceValuesPromises = entities.map(entity =>
-      this.replaceValues(this.rowNumber(data, entity), headers, entity),
+
+    await this.sheetsClientProvider.handleQuotaRetries(sheetsClient =>
+      sheetsClient.spreadsheets.values.batchUpdate({
+        spreadsheetId: this.options.spreadsheetId,
+        requestBody: {
+          valueInputOption: 'USER_ENTERED',
+          includeValuesInResponse: false,
+          data: entities.map(entity => {
+            const rowNumber = this.rowNumber(data, entity);
+            const range = this.buildRangeToUpdate(headers, rowNumber);
+            const entityAsSheetArray = this.toSheetArrayFromHeaders(entity, headers);
+
+            return {
+              range,
+              values: [entityAsSheetArray],
+            };
+          }),
+        },
+      }),
     );
-    await Promise.all(replaceValuesPromises);
   }
 
   private async fetchSheetDetails(): Promise<sheets_v4.Schema$Sheet> {
@@ -297,26 +317,11 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
     });
   }
 
-  private async replaceValues(rowNumber: number, headers: string[], entity: T): Promise<void> {
-    const values = this.toSheetArrayFromHeaders(entity, headers);
-
+  private buildRangeToUpdate(headers: string[], rowNumber: number): string {
     // Transform header indexes into letters, to build the range. Example: 0 -> A, 1 -> B
     const columns = headers.map((_, index) => (index + 10).toString(36).toUpperCase());
     const initialRange = `${columns[0]}${rowNumber}`; // Example A2
     const endingRange = `${columns[columns.length - 1]}${rowNumber}`; // Example F2
-    const range = `${this.options.sheet}!${initialRange}:${endingRange}`; // Example users!A2:F2
-
-    this.logger.log(`Range: ${range}`);
-
-    await this.sheetsClientProvider.handleQuotaRetries(sheetsClient =>
-      sheetsClient.spreadsheets.values.update({
-        spreadsheetId: this.options.spreadsheetId,
-        range,
-        valueInputOption: 'USER_ENTERED',
-        requestBody: {
-          values: [values],
-        },
-      }),
-    );
+    return `${this.options.sheet}!${initialRange}:${endingRange}`; // Example users!A2:F2
   }
 }
