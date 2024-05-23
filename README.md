@@ -154,3 +154,21 @@ await orm.delete(entityToDelete);
   - This method deletes the row in which the entity was persisted.
   - It internally fetches the sheet data to find which row needs to delete.
   - Quota retries are automatically handled to manage API rate limits.
+
+### `deleteAll(entities: T[])`
+
+Deletes the provided entities from the spreadsheet.
+
+```typescript
+const myEntities: YourEntity[] = await orm.all();
+
+const entitiesToDelete: YourEntity = myEntities.filter(e => e.shouldBeDeleted());
+
+await orm.delete(entitiesToDelete);
+```
+
+- **Parameters**:
+  - `entities`: The entity array to delete in the sheet.
+- **Remarks**:
+  - It internally fetches the sheet data to find which row needs to delete.
+  - Quota retries are automatically handled to manage API rate limits.
