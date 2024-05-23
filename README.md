@@ -25,7 +25,7 @@ as authentication, but any other auth option from the auth library is available 
 
 ```typescript
 import { GoogleAuth } from 'google-auth-library';
-import { GoogleSpreadsheetOrm } from 'google-spreadsheet-orm';
+import { GoogleSpreadsheetOrm } from 'google-spreadsheets-orm';
 
 interface CustomerModel {
   id: string;
@@ -162,7 +162,7 @@ Deletes the provided entities from the spreadsheet.
 ```typescript
 const myEntities: YourEntity[] = await orm.all();
 
-const entitiesToDelete: YourEntity = myEntities.filter(e => e.shouldBeDeleted());
+const entitiesToDelete: YourEntity[] = myEntities.filter(e => e.shouldBeDeleted());
 
 await orm.delete(entitiesToDelete);
 ```
