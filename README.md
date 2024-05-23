@@ -107,9 +107,33 @@ await orm.create({
 - **Parameters**:
   - `entity`: The entity object to persist as a new row in the sheet.
 - **Remarks**:
-  - This method appends a new row at the end of the specified sheet in the associated spreadsheet.
-  - It retrieves the headers of the sheet to ensure proper alignment of data.
-  - The entity object is converted into an array of cell values according to the sheet headers.
+  - It internally retrieves the headers of the sheet to ensure proper alignment of data.
+  - Quota retries are automatically handled to manage API rate limits.
+
+### `createAll(entities: T[])`
+
+Creates many new rows in the specified sheet with the provided entities.
+
+```typescript
+// Adds 2 new rows to sheet
+await orm.createAll([
+  {
+    id: '1111-2222-3333-4444',
+    dateCreated: new Date(),
+    name: 'John Doe',
+  },
+  {
+    id: '5555-6666-7777-8888',
+    dateCreated: new Date(),
+    name: 'John Doe 2',
+  },
+]);
+```
+
+- **Parameters**:
+  - `entities`: The entity array to persist as new rows in the sheet.
+- **Remarks**:
+  - It internally retrieves the headers of the sheet to ensure proper alignment of data.
   - Quota retries are automatically handled to manage API rate limits.
 
 ### `delete(entity: T)`

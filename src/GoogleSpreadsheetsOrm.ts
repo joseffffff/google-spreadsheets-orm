@@ -53,27 +53,14 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
    * @param entity - The entity object to persist as a new row in the sheet.
    *
    * @remarks
-   * This method appends a new row to the end of the specified sheet in the associated spreadsheet.
+   * This method appends a new row at the end of the specified sheet in the associated spreadsheet.
    * It retrieves the headers of the sheet to ensure proper alignment of data.
    * Quota retries are automatically handled to manage API rate limits.
    *
    * @returns A Promise that resolves when the row creation process is completed successfully.
    */
   public async create(entity: T): Promise<void> {
-    const headers: string[] = await this.sheetHeaders();
-    const toSave: ParsedSpreadsheetCellValue[] = this.toSheetArrayFromHeaders(entity, headers);
-
-    await this.sheetsClientProvider.handleQuotaRetries(sheetsClient =>
-      sheetsClient.spreadsheets.values.append({
-        spreadsheetId: this.options.spreadsheetId,
-        range: this.options.sheet,
-        insertDataOption: 'INSERT_ROWS',
-        valueInputOption: 'USER_ENTERED',
-        requestBody: {
-          values: [toSave],
-        },
-      }),
-    );
+    return this.createAll([entity]);
   }
 
   /**
@@ -114,35 +101,45 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
     );
   }
 
-  // public async createAll(entities: T[]): Promise<boolean> {
-  //   if (entities.length === 0) {
-  //     return true;
-  //   }
-  //
-  //   if (entities.some(entity => !entity.id)) {
-  //     throw new GoogleSpreadsheetOrmError('Cannot persist entities that have no id.');
-  //   }
-  //
-  //   const { headers } = await this.findTableData();
-  //
-  //   const entitiesDatabaseArrays: ParsedSpreadsheetCellValue[][] = entities.map(entity =>
-  //     this.toSheetArrayFromHeaders(entity, headers),
-  //   );
-  //
-  //   await this.sheetsClientProvider.handleQuotaRetries(sheetsClient =>
-  //     sheetsClient.spreadsheets.values.append({
-  //       spreadsheetId: this.spreadsheetId,
-  //       range: this.sheet,
-  //       insertDataOption: 'INSERT_ROWS',
-  //       valueInputOption: 'USER_ENTERED',
-  //       requestBody: {
-  //         values: entitiesDatabaseArrays,
-  //       },
-  //     }),
-  //   );
-  //
-  //   return true;
-  // }
+  /**
+   * Creates a new row in the specified sheet for each entity provided in the *entities* array.
+   *
+   * @param entities - An array of entities objects to persist as a new row in the sheet.
+   *
+   * @remarks
+   * This method appends a new row for each entity provided at the end of the specified sheet in the associated spreadsheet.
+   * It retrieves the headers of the sheet to ensure proper alignment of data.
+   * Quota retries are automatically handled to manage API rate limits.
+   *
+   * @returns A Promise that resolves when the row creation process is completed successfully.
+   */
+  public async createAll(entities: T[]): Promise<void> {
+    if (entities.length === 0) {
+      return;
+    }
+
+    if (entities.some(entity => !entity.id)) {
+      throw new GoogleSpreadsheetOrmError('Cannot persist entities that have no id.');
+    }
+
+    const headers = await this.sheetHeaders();
+
+    const entitiesDatabaseArrays: ParsedSpreadsheetCellValue[][] = entities.map(entity =>
+      this.toSheetArrayFromHeaders(entity, headers),
+    );
+
+    await this.sheetsClientProvider.handleQuotaRetries(sheetsClient =>
+      sheetsClient.spreadsheets.values.append({
+        spreadsheetId: this.options.spreadsheetId,
+        range: this.options.sheet,
+        insertDataOption: 'INSERT_ROWS',
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: entitiesDatabaseArrays,
+        },
+      }),
+    );
+  }
 
   // public updateAll(entities: T[]): boolean {
   //   if (entities.length === 0) {
@@ -184,7 +181,7 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
 
     return sheetDetails;
   }
-  //
+
   // public deleteAll(entities: T[]): boolean {
   //   if (entities.length === 0) {
   //     return true;
@@ -205,14 +202,14 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
   // }
   //
   private rowNumber(data: ParsedSpreadsheetCellValue[][], entity: T): number {
-    for (let i = 0; i < data.length; i++) {
-      if (data[i][0] === entity.id) {
-        // +1 because no headers in array and +1 because row positions starts at 1
-        return i + 2;
-      }
+    const index = data.findIndex(row => row[0] === entity.id);
+
+    if (index === -1) {
+      throw new GoogleSpreadsheetOrmError(`Provided entity is not part of '${this.options.sheet}' sheet.`);
     }
 
-    throw new GoogleSpreadsheetOrmError('Not found');
+    // +1 because no headers in array and +1 because row numbers starts at 1
+    return index + 2;
   }
 
   private toSheetArrayFromHeaders(entity: T, tableHeaders: string[]): ParsedSpreadsheetCellValue[] {

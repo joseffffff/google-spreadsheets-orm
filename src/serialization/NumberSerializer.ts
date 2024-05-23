@@ -1,5 +1,5 @@
 import { Serializer } from './Serializer';
-import { SerializationError } from './SerializationError';
+import { SerializationError } from '../errors/SerializationError';
 
 export class NumberSerializer implements Serializer<number> {
   public fromSpreadsheetValue(value: string | undefined): number | undefined {

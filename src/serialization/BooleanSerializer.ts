@@ -1,5 +1,5 @@
 import { Serializer } from './Serializer';
-import { SerializationError } from './SerializationError';
+import { SerializationError } from '../errors/SerializationError';
 
 export class BooleanSerializer implements Serializer<boolean> {
   public fromSpreadsheetValue(value: string): boolean | undefined {
