@@ -457,6 +457,10 @@ describe(GoogleSpreadsheetsOrm.name, () => {
     expect(sheetClients.every(client => client.spreadsheets.batchUpdate.mock.calls.length === 0)).toBeTruthy();
   });
 
+  test('update should correctly send a single request to batchUpdate endpoint', async () => {
+
+  });
+
   function mockValuesResponse(rawValues: string[][]): void {
     sheetClients
       .map(s => s.spreadsheets.values as MockProxy<sheets_v4.Resource$Spreadsheets$Values>)
