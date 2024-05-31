@@ -43,7 +43,7 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
    * @returns A Promise that resolves to an array of entities of type T, representing all rows retrieved from the sheet.
    */
   public async all(): Promise<T[]> {
-    const { data, headers } = await this.findTableData();
+    const { data, headers } = await this.findSheetData();
     return this.rowsToEntities(data, headers);
   }
 
@@ -76,6 +76,21 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
    */
   public async delete(entity: T): Promise<void> {
     return this.deleteAll([entity]);
+  }
+
+  /**
+   * Updates the row in the specified sheet matching by id. All values are replaced with the ones in the entity param.
+   *
+   * @param entity - An entity object to update in the sheet.
+   *
+   * @remarks
+   * It retrieves sheet data to ensure proper alignment of data and checking which row needs to update.
+   * Quota retries are automatically handled to manage API rate limits.
+   *
+   * @returns A Promise that resolves when the row update process is completed successfully.
+   */
+  public async update(entity: T): Promise<void> {
+    return this.updateAll([entity]);
   }
 
   /**
@@ -124,7 +139,6 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
    * @param entities - An array of entities objects to delete
    *
    * @remarks
-   * @remarks
    * It internally retrieves all data from the specified sheet.
    * Quota retries are automatically handled to manage API rate limits.
    *
@@ -135,7 +149,7 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
       return;
     }
 
-    const { data } = await this.findTableData();
+    const { data } = await this.findSheetData();
     const rowNumbers = entities
       .map(entity => this.rowNumber(data, entity))
       // rows are deleted from bottom to top
@@ -162,29 +176,49 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
     );
   }
 
-  // public updateAll(entities: T[]): boolean {
-  //   if (entities.length === 0) {
-  //     return true;
-  //   }
-  //
-  //   if (entities.some(entity => entity.id === undefined)) {
-  //     throw new InternalServerErrorException('Cannot update entities without id.');
-  //   }
-  //
-  //   entities.forEach(entity => (entity.updatedAt = new Date()));
-  //
-  //   const sheet = this.sheet();
-  //
-  //   const data = this.allSheetDataFromSheet(sheet);
-  //   const headers = data.shift() as string[];
-  //
-  //   this.ioTimingsReporter.measureTime(InputOutputOperation.DB_UPDATE_ALL, () =>
-  //     entities.forEach(entity => this.replaceValues(this.rowNumber(data, entity), headers, sheet, entity)),
-  //   );
-  //
-  //   return true;
-  // }
-  //
+  /**
+   * Updates the rows in the specified sheet matching by id. All values are replaced with the ones in the entities param.
+   *
+   * @param entities - An array of entities objects to update in the sheet.
+   *
+   * @remarks
+   * It retrieves sheet data to ensure proper alignment of data and checking which row needs to update.
+   * Quota retries are automatically handled to manage API rate limits.
+   *
+   * @returns A Promise that resolves when the row update process is completed successfully.
+   */
+  public async updateAll(entities: T[]): Promise<void> {
+    if (entities.length === 0) {
+      return;
+    }
+
+    if (entities.some(entity => !entity.id)) {
+      throw new GoogleSpreadsheetOrmError('Cannot persist entities that have no id.');
+    }
+
+    const { headers, data } = await this.findSheetData();
+
+    await this.sheetsClientProvider.handleQuotaRetries(sheetsClient =>
+      sheetsClient.spreadsheets.values.batchUpdate({
+        spreadsheetId: this.options.spreadsheetId,
+        requestBody: {
+          valueInputOption: 'USER_ENTERED',
+          includeValuesInResponse: false,
+          data: entities.map(entity => {
+            const rowNumber = this.rowNumber(data, entity);
+            const range = this.buildRangeToUpdate(headers, rowNumber);
+            const entityAsSheetArray = this.toSheetArrayFromHeaders(entity, headers);
+
+            return {
+              range,
+              values: [entityAsSheetArray],
+            };
+          }),
+        },
+      }),
+    );
+  }
+
   private async fetchSheetDetails(): Promise<sheets_v4.Schema$Sheet> {
     const sheets = await this.sheetsClientProvider.handleQuotaRetries(sheetsClient =>
       sheetsClient.spreadsheets.get({
@@ -260,17 +294,7 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
     return this.instantiator(entity);
   }
 
-  // private async update(entity: T): Promise<boolean> {
-  //   const { headers, data } = await this.findTableData();
-  //
-  //   const rowNumber = this.rowNumber(data, entity);
-  //
-  //   await this.replaceValues(rowNumber, headers, entity);
-  //
-  //   return true;
-  // }
-
-  private async findTableData(): Promise<{ headers: string[]; data: string[][] }> {
+  private async findSheetData(): Promise<{ headers: string[]; data: string[][] }> {
     const data: string[][] = await this.allSheetData();
     const headers: string[] = data.shift() as string[];
     return { headers, data };
@@ -305,26 +329,11 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
     });
   }
 
-  // private async replaceValues(rowNumber: number, headers: string[], entity: T): Promise<void> {
-  //   const values = this.toSheetArrayFromHeaders(entity, headers);
-  //
-  //   // Transform header indexes into letters, to build the range. Example: 0 -> A, 1 -> B
-  //   const columns = headers.map((_, index) => (index + 10).toString(36).toUpperCase());
-  //   const initialRange = `${columns[0]}${rowNumber}`; // Example A2
-  //   const endingRange = `${columns[columns.length - 1]}${rowNumber}`; // Example F2
-  //   const range = `${this.sheet}!${initialRange}:${endingRange}`; // Example users!A2:F2
-  //
-  //   this.logger.log(`Range: ${range}`);
-  //
-  //   await this.sheetsClientProvider.handleQuotaRetries(sheetsClient =>
-  //     sheetsClient.spreadsheets.values.update({
-  //       spreadsheetId: this.spreadsheetId,
-  //       range,
-  //       valueInputOption: 'USER_ENTERED',
-  //       requestBody: {
-  //         values: [ values ],
-  //       },
-  //     }),
-  //   );
-  // }
+  private buildRangeToUpdate(headers: string[], rowNumber: number): string {
+    // Transform header indexes into letters, to build the range. Example: 0 -> A, 1 -> B
+    const columns = headers.map((_, index) => (index + 10).toString(36).toUpperCase());
+    const initialRange = `${columns[0]}${rowNumber}`; // Example A2
+    const endingRange = `${columns[columns.length - 1]}${rowNumber}`; // Example F2
+    return `${this.options.sheet}!${initialRange}:${endingRange}`; // Example users!A2:F2
+  }
 }

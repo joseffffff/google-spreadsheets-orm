@@ -11,9 +11,6 @@ import { GoogleSpreadsheetOrmError } from '../src/errors/GoogleSpreadsheetOrmErr
 
 const SPREADSHEET_ID = 'spreadsheetId';
 const SHEET = 'test_entities';
-const UUID_REGEX = /^[0-9A-F]{8}-[0-9A-F]{4}-[4][0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$/i;
-const DATE_REGEX =
-  /^(0?[1-9]|[12][0-9]|3[01])\/(0?[1-9]|1[0-2])\/\d{4} (0?[0-9]|1[0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9])$/;
 
 interface TestEntity {
   readonly id: string;
@@ -458,7 +455,171 @@ describe(GoogleSpreadsheetsOrm.name, () => {
   });
 
   test('update should correctly send a single request to batchUpdate endpoint', async () => {
+    mockValuesResponse([
+      ['id', 'createdAt', 'name', 'jsonField', 'current', 'year'],
+      [
+        'ae222b54-182f-4958-b77f-26a3a04dff34', // id
+        '29/12/2023 17:47:04', // createdAt
+        'John Doe', // name
+        // language=json
+        '{"a":"b","c":[1,2,3]}', // jsonField
+        'true', // current
+        '2023', // year
+      ],
+      [
+        'ae222b54-182f-4958-b77f-26a3a04dff35', // id
+        '29/12/2023 17:47:04', // createdAt
+        'John Doe', // name
+        // language=json
+        '{"a":"b","c":[1,2,3]}', // jsonField
+        'true', // current
+        '2023', // year
+      ],
+    ]);
 
+    const entity: TestEntity = {
+      id: 'ae222b54-182f-4958-b77f-26a3a04dff35',
+      createdAt: new Date('2023-12-29 17:47:04'),
+      name: 'John Doe - Update', // changed
+      jsonField: {
+        a: 'c', // changed
+        c: [1, 2, 3],
+      },
+      current: false, // changed
+      year: 2023,
+    };
+
+    await sut.update(entity);
+
+    expect(getValuesBatchUpdateUsedSheetClient()?.spreadsheets.values.batchUpdate).toHaveBeenCalledWith({
+      spreadsheetId: SPREADSHEET_ID,
+      requestBody: {
+        valueInputOption: 'USER_ENTERED',
+        includeValuesInResponse: false,
+        data: [
+          {
+            range: `${SHEET}!A3:F3`,
+            values: [
+              [
+                'ae222b54-182f-4958-b77f-26a3a04dff35', // id
+                '29/12/2023 17:47:04', // createdAt
+                'John Doe - Update', // name
+                // language=json
+                '{"a":"c","c":[1,2,3]}', // jsonField
+                'false', // current
+                '2023', // year
+              ],
+            ],
+          },
+        ],
+      },
+    });
+  });
+
+  test('update should fail if entity has no id', async () => {
+    await expect(
+      // @ts-ignore
+      sut.update({
+        /* no values */
+      }),
+    ).rejects.toStrictEqual(new GoogleSpreadsheetOrmError('Cannot persist entities that have no id.'));
+  });
+
+  test('updateAll should do nothing if empty array is passed', async () => {
+    await sut.updateAll([]);
+    expect(
+      // @ts-ignore
+      sheetClients.every(client => client.spreadsheets.values.batchUpdate.mock.calls.length === 0),
+    ).toBeTruthy();
+  });
+
+  test('updateAll should correctly update many rows', async () => {
+    mockValuesResponse([
+      ['id', 'createdAt', 'name', 'jsonField', 'current', 'year'],
+      [
+        'ae222b54-182f-4958-b77f-26a3a04dff34', // id
+        '29/12/2023 17:47:04', // createdAt
+        'John Doe', // name
+        // language=json
+        '{"a":"b","c":[1,2,3]}', // jsonField
+        'true', // current
+        '2023', // year
+      ],
+      [
+        'ae222b54-182f-4958-b77f-26a3a04dff35', // id
+        '29/12/2023 17:47:04', // createdAt
+        'John Doe', // name
+        // language=json
+        '{"a":"b","c":[1,2,3]}', // jsonField
+        'true', // current
+        '2023', // year
+      ],
+    ]);
+
+    const entities: TestEntity[] = [
+      {
+        id: 'ae222b54-182f-4958-b77f-26a3a04dff34',
+        createdAt: new Date('2023-12-29 17:47:04'),
+        name: 'John Doe - Update', // changed
+        jsonField: {
+          a: 'c', // changed
+          c: [1, 2, 3],
+        },
+        current: false, // changed
+        year: 2025, // changed
+      },
+      {
+        id: 'ae222b54-182f-4958-b77f-26a3a04dff35',
+        createdAt: new Date('2023-12-29 17:47:04'),
+        name: 'John Doe - Update', // changed
+        jsonField: {
+          a: 'c', // changed
+          c: [1, 2, 3],
+        },
+        current: false, // changed
+        year: 2023,
+      },
+    ];
+
+    await sut.updateAll(entities);
+
+    expect(getValuesBatchUpdateUsedSheetClient()?.spreadsheets.values.batchUpdate).toHaveBeenCalledWith({
+      spreadsheetId: SPREADSHEET_ID,
+      requestBody: {
+        valueInputOption: 'USER_ENTERED',
+        includeValuesInResponse: false,
+        data: [
+          {
+            range: `${SHEET}!A2:F2`,
+            values: [
+              [
+                'ae222b54-182f-4958-b77f-26a3a04dff34', // id
+                '29/12/2023 17:47:04', // createdAt
+                'John Doe - Update', // name
+                // language=json
+                '{"a":"c","c":[1,2,3]}', // jsonField
+                'false', // current
+                '2025', // year
+              ],
+            ],
+          },
+          {
+            range: `${SHEET}!A3:F3`,
+            values: [
+              [
+                'ae222b54-182f-4958-b77f-26a3a04dff35', // id
+                '29/12/2023 17:47:04', // createdAt
+                'John Doe - Update', // name
+                // language=json
+                '{"a":"c","c":[1,2,3]}', // jsonField
+                'false', // current
+                '2023', // year
+              ],
+            ],
+          },
+        ],
+      },
+    });
   });
 
   function mockValuesResponse(rawValues: string[][]): void {
@@ -492,6 +653,14 @@ describe(GoogleSpreadsheetsOrm.name, () => {
       sheetClients
         // @ts-ignore
         .find(client => client.spreadsheets.batchUpdate.mock.calls.length > 0)
+    );
+  }
+
+  function getValuesBatchUpdateUsedSheetClient(): sheets_v4.Sheets | undefined {
+    return (
+      sheetClients
+        // @ts-ignore
+        .find(client => client.spreadsheets.values.batchUpdate.mock.calls.length > 0)
     );
   }
 });
