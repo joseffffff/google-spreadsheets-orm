@@ -1,6 +1,6 @@
 {
   "name": "google-spreadsheets-orm",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Production-ready ORM applying data-mapper pattern to consume google spreadsheets.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
