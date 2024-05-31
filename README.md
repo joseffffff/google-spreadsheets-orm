@@ -136,7 +136,7 @@ await orm.createAll([
   - It internally retrieves the headers of the sheet to ensure proper alignment of data.
   - Quota retries are automatically handled to manage API rate limits.
 
-### `delete(entity: T)`
+### `delete(entity: T) | deleteById(entityId: string)’`
 
 Deletes the entity provided from the spreadsheet.
 
@@ -155,7 +155,7 @@ await orm.delete(entityToDelete);
   - It internally fetches the sheet data to find which row needs to delete.
   - Quota retries are automatically handled to manage API rate limits.
 
-### `deleteAll(entities: T[])`
+### `deleteAll(entities: T[])` | `deleteAllById(entityIds: string[])` 
 
 Deletes the provided entities from the spreadsheet.
 
