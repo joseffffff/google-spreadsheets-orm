@@ -83,7 +83,7 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
    * @param entity
    * @private
    */
-  private async update(entity: T): Promise<void> {
+  public async update(entity: T): Promise<void> {
     return this.updateAll([entity]);
   }
 
