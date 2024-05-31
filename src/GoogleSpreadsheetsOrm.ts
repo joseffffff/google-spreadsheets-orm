@@ -74,8 +74,23 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
    *
    * @returns A Promise that resolves when the row deletion process is completed successfully.
    */
-  public async delete(entity: T): Promise<void> {
-    return this.deleteAll([entity]);
+  public delete(entity: T): Promise<void> {
+    return this.deleteById(entity.id);
+  }
+
+  /**
+   * Deletes the row associated with the provided entity in the specified sheet.
+   *
+   * @param entityId - Ids of the row to delete
+   *
+   * @remarks
+   * It internally retrieves all data from the specified sheet.
+   * Quota retries are automatically handled to manage API rate limits.
+   *
+   * @returns A Promise that resolves when the row deletion process is completed successfully.
+   */
+  public deleteById(entityId: string): Promise<void> {
+    return this.deleteAllByIdIn([entityId]);
   }
 
   /**
@@ -144,14 +159,29 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
    *
    * @returns A Promise that resolves when all the row deletion processes are completed successfully.
    */
-  public async deleteAll(entities: T[]): Promise<void> {
-    if (entities.length === 0) {
+  public deleteAll(entities: T[]): Promise<void> {
+    return this.deleteAllByIdIn(entities.map(entity => entity.id));
+  }
+
+  /**
+   * Deletes the rows associated with the provided IDs in the specified sheet.
+   *
+   * @param entityIds - Ids of the rows to delete
+   *
+   * @remarks
+   * It internally retrieves all data from the specified sheet.
+   * Quota retries are automatically handled to manage API rate limits.
+   *
+   * @returns A Promise that resolves when all the row deletion processes are completed successfully.
+   */
+  public async deleteAllByIdIn(entityIds: string[]): Promise<void> {
+    if (entityIds.length === 0) {
       return;
     }
 
     const { data } = await this.findSheetData();
-    const rowNumbers = entities
-      .map(entity => this.rowNumber(data, entity))
+    const rowNumbers = entityIds
+      .map(entityId => this.rowNumber(data, entityId))
       // rows are deleted from bottom to top
       .sort((a, b) => b - a);
 
@@ -205,7 +235,7 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
           valueInputOption: 'USER_ENTERED',
           includeValuesInResponse: false,
           data: entities.map(entity => {
-            const rowNumber = this.rowNumber(data, entity);
+            const rowNumber = this.rowNumber(data, entity.id);
             const range = this.buildRangeToUpdate(headers, rowNumber);
             const entityAsSheetArray = this.toSheetArrayFromHeaders(entity, headers);
 
@@ -237,8 +267,8 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
     return sheetDetails;
   }
 
-  private rowNumber(data: ParsedSpreadsheetCellValue[][], entity: T): number {
-    const index = data.findIndex(row => row[0] === entity.id);
+  private rowNumber(data: ParsedSpreadsheetCellValue[][], entityId: string): number {
+    const index = data.findIndex(row => row[0] === entityId);
 
     if (index === -1) {
       throw new GoogleSpreadsheetOrmError(`Provided entity is not part of '${this.options.sheet}' sheet.`);
