@@ -181,7 +181,7 @@ Updates the row in the specified sheet matching by id. All values are replaced w
 const myEntities: YourEntity[] = await orm.all();
 
 const entityToUpdate: YourEntity = myEntities.find(e => e.id === '1111-2222-3333-4444');
-entityToUpdate.name = 'Updated name'
+entityToUpdate.name = 'Updated name';
 
 await orm.update(entityToUpdate);
 ```
@@ -203,7 +203,7 @@ const entitiesToUpdate: YourEntity[] = myEntities.filter(e => e.shouldBeDeleted(
 
 entitiesToUpdate.forEach(entity => {
   entity.name = 'Updated Name';
-})
+});
 
 await orm.updateAll(entitiesToUpdate);
 ```
