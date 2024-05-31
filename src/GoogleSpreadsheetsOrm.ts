@@ -79,9 +79,15 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
   }
 
   /**
-   * TODO
-   * @param entity
-   * @private
+   * Updates the row in the specified sheet matching by id. All values are replaced with the ones in the entity param.
+   *
+   * @param entity - An entity object to update in the sheet.
+   *
+   * @remarks
+   * It retrieves sheet data to ensure proper alignment of data and checking which row needs to update.
+   * Quota retries are automatically handled to manage API rate limits.
+   *
+   * @returns A Promise that resolves when the row update process is completed successfully.
    */
   public async update(entity: T): Promise<void> {
     return this.updateAll([entity]);
@@ -133,7 +139,6 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
    * @param entities - An array of entities objects to delete
    *
    * @remarks
-   * @remarks
    * It internally retrieves all data from the specified sheet.
    * Quota retries are automatically handled to manage API rate limits.
    *
@@ -172,8 +177,15 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
   }
 
   /**
+   * Updates the rows in the specified sheet matching by id. All values are replaced with the ones in the entities param.
    *
-   * @param entities
+   * @param entities - An array of entities objects to update in the sheet.
+   *
+   * @remarks
+   * It retrieves sheet data to ensure proper alignment of data and checking which row needs to update.
+   * Quota retries are automatically handled to manage API rate limits.
+   *
+   * @returns A Promise that resolves when the row update process is completed successfully.
    */
   public async updateAll(entities: T[]): Promise<void> {
     if (entities.length === 0) {

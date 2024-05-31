@@ -11,9 +11,6 @@ import { GoogleSpreadsheetOrmError } from '../src/errors/GoogleSpreadsheetOrmErr
 
 const SPREADSHEET_ID = 'spreadsheetId';
 const SHEET = 'test_entities';
-const UUID_REGEX = /^[0-9A-F]{8}-[0-9A-F]{4}-[4][0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$/i;
-const DATE_REGEX =
-  /^(0?[1-9]|[12][0-9]|3[01])\/(0?[1-9]|1[0-2])\/\d{4} (0?[0-9]|1[0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9])$/;
 
 interface TestEntity {
   readonly id: string;
