@@ -90,7 +90,7 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
    * @returns A Promise that resolves when the row deletion process is completed successfully.
    */
   public deleteById(entityId: string): Promise<void> {
-    return this.deleteAllById([entityId]);
+    return this.deleteAllByIdIn([entityId]);
   }
 
   /**
@@ -160,7 +160,7 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
    * @returns A Promise that resolves when all the row deletion processes are completed successfully.
    */
   public deleteAll(entities: T[]): Promise<void> {
-    return this.deleteAllById(entities.map(entity => entity.id));
+    return this.deleteAllByIdIn(entities.map(entity => entity.id));
   }
 
   /**
@@ -174,7 +174,7 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
    *
    * @returns A Promise that resolves when all the row deletion processes are completed successfully.
    */
-  public async deleteAllById(entityIds: string[]): Promise<void> {
+  public async deleteAllByIdIn(entityIds: string[]): Promise<void> {
     if (entityIds.length === 0) {
       return;
     }

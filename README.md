@@ -155,7 +155,7 @@ await orm.delete(entityToDelete);
   - It internally fetches the sheet data to find which row needs to delete.
   - Quota retries are automatically handled to manage API rate limits.
 
-### `deleteAll(entities: T[])` | `deleteAllByIds(entityIds: string[])`
+### `deleteAll(entities: T[])` | `deleteAllByIdIn(entityIds: string[])`
 
 Deletes the provided entities from the spreadsheet.
 
