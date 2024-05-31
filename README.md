@@ -172,3 +172,44 @@ await orm.delete(entitiesToDelete);
 - **Remarks**:
   - It internally fetches the sheet data to find which row needs to delete.
   - Quota retries are automatically handled to manage API rate limits.
+
+### `update(entity: T)`
+
+Updates the row in the specified sheet matching by id. All values are replaced with the ones in the entity param.
+
+```typescript
+const myEntities: YourEntity[] = await orm.all();
+
+const entityToUpdate: YourEntity = myEntities.find(e => e.id === '1111-2222-3333-4444');
+entityToUpdate.name = 'Updated name'
+
+await orm.update(entityToUpdate);
+```
+
+- **Parameters**:
+  - `entity`: The entity object to update in the sheet.
+- **Remarks**:
+  - It internally retrieves sheet data to ensure proper alignment of data and checking which row needs to update.
+  - Quota retries are automatically handled to manage API rate limits.
+
+### `updateAll(entities: T[])`
+
+Updates the rows in the specified sheet matching by id. All values are replaced with the ones in the entities param.
+
+```typescript
+const myEntities: YourEntity[] = await orm.all();
+
+const entitiesToUpdate: YourEntity[] = myEntities.filter(e => e.shouldBeDeleted());
+
+entitiesToUpdate.forEach(entity => {
+  entity.name = 'Updated Name';
+})
+
+await orm.updateAll(entitiesToUpdate);
+```
+
+- **Parameters**:
+  - `entities`: An array of entities objects to update in the sheet.
+- **Remarks**:
+  - It internally retrieves sheet data to ensure proper alignment of data and checking which row needs to update.
+  - Quota retries are automatically handled to manage API rate limits.

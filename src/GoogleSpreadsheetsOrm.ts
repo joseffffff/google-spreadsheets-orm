@@ -43,7 +43,7 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
    * @returns A Promise that resolves to an array of entities of type T, representing all rows retrieved from the sheet.
    */
   public async all(): Promise<T[]> {
-    const { data, headers } = await this.findTableData();
+    const { data, headers } = await this.findSheetData();
     return this.rowsToEntities(data, headers);
   }
 
@@ -149,7 +149,7 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
       return;
     }
 
-    const { data } = await this.findTableData();
+    const { data } = await this.findSheetData();
     const rowNumbers = entities
       .map(entity => this.rowNumber(data, entity))
       // rows are deleted from bottom to top
@@ -196,7 +196,7 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
       throw new GoogleSpreadsheetOrmError('Cannot persist entities that have no id.');
     }
 
-    const { headers, data } = await this.findTableData();
+    const { headers, data } = await this.findSheetData();
 
     await this.sheetsClientProvider.handleQuotaRetries(sheetsClient =>
       sheetsClient.spreadsheets.values.batchUpdate({
@@ -294,7 +294,7 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
     return this.instantiator(entity);
   }
 
-  private async findTableData(): Promise<{ headers: string[]; data: string[][] }> {
+  private async findSheetData(): Promise<{ headers: string[]; data: string[][] }> {
     const data: string[][] = await this.allSheetData();
     const headers: string[] = data.shift() as string[];
     return { headers, data };
