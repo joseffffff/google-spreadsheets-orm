@@ -8,6 +8,7 @@ import Schema$Spreadsheet = sheets_v4.Schema$Spreadsheet;
 
 import Params$Resource$Spreadsheets$Values$Append = sheets_v4.Params$Resource$Spreadsheets$Values$Append;
 import { GoogleSpreadsheetOrmError } from '../src/errors/GoogleSpreadsheetOrmError';
+import { MetricOperation } from '../src';
 
 const SPREADSHEET_ID = 'spreadsheetId';
 const SHEET = 'test_entities';
@@ -120,6 +121,11 @@ describe(GoogleSpreadsheetsOrm.name, () => {
       },
     ];
     expect(entities).toStrictEqual(expectedValues);
+    expect(sut.metrics.toObject()).toMatchObject({
+      [MetricOperation.FETCH_SHEET_DATA]: [
+        expect.any(Number), // Just one call
+      ],
+    });
   });
 
   test('create method should insert a new row', async () => {
@@ -160,6 +166,14 @@ describe(GoogleSpreadsheetsOrm.name, () => {
         ],
       },
     } as Params$Resource$Spreadsheets$Values$Append);
+    expect(sut.metrics.toObject()).toMatchObject({
+      [MetricOperation.FETCH_SHEET_HEADERS]: [
+        expect.any(Number),
+      ],
+      [MetricOperation.SHEET_APPEND]: [
+        expect.any(Number),
+      ],
+    });
   });
 
   test('createAll method should insert a new row per each entity provided', async () => {
@@ -219,12 +233,21 @@ describe(GoogleSpreadsheetsOrm.name, () => {
         ],
       },
     } as Params$Resource$Spreadsheets$Values$Append);
+    expect(sut.metrics.toObject()).toMatchObject({
+      [MetricOperation.FETCH_SHEET_HEADERS]: [
+        expect.any(Number),
+      ],
+      [MetricOperation.SHEET_APPEND]: [
+        expect.any(Number),
+      ],
+    });
   });
 
   test('createAll method should not persist anything if an empty array is passed', async () => {
     await sut.createAll([]);
     // @ts-ignore
     expect(sheetClients.every(client => client.spreadsheets.values.append.mock.calls.length === 0)).toBeTruthy();
+    expect(sut.metrics.toObject()).toStrictEqual({});
   });
 
   test('createAll method should fail if some passed entity has undefined id', async () => {
@@ -252,6 +275,7 @@ describe(GoogleSpreadsheetsOrm.name, () => {
         },
       ]),
     ).rejects.toStrictEqual(new GoogleSpreadsheetOrmError('Cannot persist entities that have no id.'));
+    expect(sut.metrics.toObject()).toStrictEqual({});
   });
 
   test('delete method should correctly delete the row with that id', async () => {
@@ -321,6 +345,17 @@ describe(GoogleSpreadsheetsOrm.name, () => {
         ],
       },
     });
+    expect(sut.metrics.toObject()).toMatchObject({
+      [MetricOperation.FETCH_SHEET_DATA]: [
+        expect.any(Number),
+      ],
+      [MetricOperation.FETCH_SHEET_DETAILS]: [
+        expect.any(Number),
+      ],
+      [MetricOperation.SHEET_DELETE]: [
+        expect.any(Number),
+      ],
+    })
   });
 
   test('delete method should fail if provided entity is not part of the sheet', async () => {
@@ -354,6 +389,11 @@ describe(GoogleSpreadsheetsOrm.name, () => {
     await expect(sut.delete(entity)).rejects.toStrictEqual(
       new GoogleSpreadsheetOrmError(`Provided entity is not part of '${SHEET}' sheet.`),
     );
+    expect(sut.metrics.toObject()).toMatchObject({
+      [MetricOperation.FETCH_SHEET_DATA]: [
+        expect.any(Number),
+      ],
+    })
   });
 
   test('deleteAll method should correctly delete many rows', async () => {
@@ -446,6 +486,17 @@ describe(GoogleSpreadsheetsOrm.name, () => {
         ],
       },
     });
+    expect(sut.metrics.toObject()).toMatchObject({
+      [MetricOperation.FETCH_SHEET_DATA]: [
+        expect.any(Number),
+      ],
+      [MetricOperation.FETCH_SHEET_DETAILS]: [
+        expect.any(Number),
+      ],
+      [MetricOperation.SHEET_DELETE]: [
+        expect.any(Number),
+      ],
+    })
   });
 
   test('deleteAll does not delete anything if no entities are passed', async () => {
@@ -514,6 +565,14 @@ describe(GoogleSpreadsheetsOrm.name, () => {
         ],
       },
     });
+    expect(sut.metrics.toObject()).toMatchObject({
+      [MetricOperation.FETCH_SHEET_DATA]: [
+        expect.any(Number),
+      ],
+      [MetricOperation.SHEET_UPDATE]: [
+        expect.any(Number),
+      ],
+    });
   });
 
   test('update should fail if entity has no id', async () => {
@@ -523,6 +582,7 @@ describe(GoogleSpreadsheetsOrm.name, () => {
         /* no values */
       }),
     ).rejects.toStrictEqual(new GoogleSpreadsheetOrmError('Cannot persist entities that have no id.'));
+    expect(sut.metrics.toObject()).toStrictEqual({});
   });
 
   test('updateAll should do nothing if empty array is passed', async () => {
@@ -531,6 +591,7 @@ describe(GoogleSpreadsheetsOrm.name, () => {
       // @ts-ignore
       sheetClients.every(client => client.spreadsheets.values.batchUpdate.mock.calls.length === 0),
     ).toBeTruthy();
+    expect(sut.metrics.toObject()).toStrictEqual({});
   });
 
   test('updateAll should correctly update many rows', async () => {
@@ -620,6 +681,14 @@ describe(GoogleSpreadsheetsOrm.name, () => {
         ],
       },
     });
+    expect(sut.metrics.toObject()).toMatchObject({
+      [MetricOperation.FETCH_SHEET_DATA]: [
+        expect.any(Number),
+      ],
+      [MetricOperation.SHEET_UPDATE]: [
+        expect.any(Number),
+      ],
+    })
   });
 
   function mockValuesResponse(rawValues: string[][]): void {
