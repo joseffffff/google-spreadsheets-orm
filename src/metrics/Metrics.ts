@@ -5,9 +5,7 @@ export type MilliSecondsByOperation = {
 };
 
 export class Metrics {
-  constructor(
-    private readonly msByOperation: Map<MetricOperation, number[]> = new Map<MetricOperation, number[]>()
-  ) {}
+  constructor(private readonly msByOperation: Map<MetricOperation, number[]> = new Map<MetricOperation, number[]>()) {}
 
   public async trackExecutionTime<T>(op: MetricOperation, func: () => Promise<T>): Promise<T> {
     const startTime = Date.now();

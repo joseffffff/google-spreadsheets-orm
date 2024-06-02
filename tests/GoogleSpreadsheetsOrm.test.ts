@@ -167,12 +167,8 @@ describe(GoogleSpreadsheetsOrm.name, () => {
       },
     } as Params$Resource$Spreadsheets$Values$Append);
     expect(sut.metrics.toObject()).toMatchObject({
-      [MetricOperation.FETCH_SHEET_HEADERS]: [
-        expect.any(Number),
-      ],
-      [MetricOperation.SHEET_APPEND]: [
-        expect.any(Number),
-      ],
+      [MetricOperation.FETCH_SHEET_HEADERS]: [expect.any(Number)],
+      [MetricOperation.SHEET_APPEND]: [expect.any(Number)],
     });
   });
 
@@ -234,12 +230,8 @@ describe(GoogleSpreadsheetsOrm.name, () => {
       },
     } as Params$Resource$Spreadsheets$Values$Append);
     expect(sut.metrics.toObject()).toMatchObject({
-      [MetricOperation.FETCH_SHEET_HEADERS]: [
-        expect.any(Number),
-      ],
-      [MetricOperation.SHEET_APPEND]: [
-        expect.any(Number),
-      ],
+      [MetricOperation.FETCH_SHEET_HEADERS]: [expect.any(Number)],
+      [MetricOperation.SHEET_APPEND]: [expect.any(Number)],
     });
   });
 
@@ -346,16 +338,10 @@ describe(GoogleSpreadsheetsOrm.name, () => {
       },
     });
     expect(sut.metrics.toObject()).toMatchObject({
-      [MetricOperation.FETCH_SHEET_DATA]: [
-        expect.any(Number),
-      ],
-      [MetricOperation.FETCH_SHEET_DETAILS]: [
-        expect.any(Number),
-      ],
-      [MetricOperation.SHEET_DELETE]: [
-        expect.any(Number),
-      ],
-    })
+      [MetricOperation.FETCH_SHEET_DATA]: [expect.any(Number)],
+      [MetricOperation.FETCH_SHEET_DETAILS]: [expect.any(Number)],
+      [MetricOperation.SHEET_DELETE]: [expect.any(Number)],
+    });
   });
 
   test('delete method should fail if provided entity is not part of the sheet', async () => {
@@ -390,10 +376,8 @@ describe(GoogleSpreadsheetsOrm.name, () => {
       new GoogleSpreadsheetOrmError(`Provided entity is not part of '${SHEET}' sheet.`),
     );
     expect(sut.metrics.toObject()).toMatchObject({
-      [MetricOperation.FETCH_SHEET_DATA]: [
-        expect.any(Number),
-      ],
-    })
+      [MetricOperation.FETCH_SHEET_DATA]: [expect.any(Number)],
+    });
   });
 
   test('deleteAll method should correctly delete many rows', async () => {
@@ -487,16 +471,10 @@ describe(GoogleSpreadsheetsOrm.name, () => {
       },
     });
     expect(sut.metrics.toObject()).toMatchObject({
-      [MetricOperation.FETCH_SHEET_DATA]: [
-        expect.any(Number),
-      ],
-      [MetricOperation.FETCH_SHEET_DETAILS]: [
-        expect.any(Number),
-      ],
-      [MetricOperation.SHEET_DELETE]: [
-        expect.any(Number),
-      ],
-    })
+      [MetricOperation.FETCH_SHEET_DATA]: [expect.any(Number)],
+      [MetricOperation.FETCH_SHEET_DETAILS]: [expect.any(Number)],
+      [MetricOperation.SHEET_DELETE]: [expect.any(Number)],
+    });
   });
 
   test('deleteAll does not delete anything if no entities are passed', async () => {
@@ -566,12 +544,8 @@ describe(GoogleSpreadsheetsOrm.name, () => {
       },
     });
     expect(sut.metrics.toObject()).toMatchObject({
-      [MetricOperation.FETCH_SHEET_DATA]: [
-        expect.any(Number),
-      ],
-      [MetricOperation.SHEET_UPDATE]: [
-        expect.any(Number),
-      ],
+      [MetricOperation.FETCH_SHEET_DATA]: [expect.any(Number)],
+      [MetricOperation.SHEET_UPDATE]: [expect.any(Number)],
     });
   });
 
@@ -682,13 +656,9 @@ describe(GoogleSpreadsheetsOrm.name, () => {
       },
     });
     expect(sut.metrics.toObject()).toMatchObject({
-      [MetricOperation.FETCH_SHEET_DATA]: [
-        expect.any(Number),
-      ],
-      [MetricOperation.SHEET_UPDATE]: [
-        expect.any(Number),
-      ],
-    })
+      [MetricOperation.FETCH_SHEET_DATA]: [expect.any(Number)],
+      [MetricOperation.SHEET_UPDATE]: [expect.any(Number)],
+    });
   });
 
   function mockValuesResponse(rawValues: string[][]): void {

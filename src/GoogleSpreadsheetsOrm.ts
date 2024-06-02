@@ -69,7 +69,7 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
    * @returns A Promise that resolves when the row creation process is completed successfully.
    */
   public async create(entity: T): Promise<void> {
-    return this.createAll([ entity ]);
+    return this.createAll([entity]);
   }
 
   /**
@@ -114,7 +114,7 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
    * @returns A Promise that resolves when the row update process is completed successfully.
    */
   public async update(entity: T): Promise<void> {
-    return this.updateAll([ entity ]);
+    return this.updateAll([entity]);
   }
 
   /**
@@ -255,7 +255,7 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
 
               return {
                 range,
-                values: [ entityAsSheetArray ],
+                values: [entityAsSheetArray],
               };
             }),
           },
@@ -265,14 +265,14 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
   }
 
   private async fetchSheetDetails(): Promise<sheets_v4.Schema$Sheet> {
-    const sheets: GaxiosResponse<sheets_v4.Schema$Spreadsheet> =
-      await this.sheetsClientProvider.handleQuotaRetries(sheetsClient =>
+    const sheets: GaxiosResponse<sheets_v4.Schema$Spreadsheet> = await this.sheetsClientProvider.handleQuotaRetries(
+      sheetsClient =>
         this.metrics.trackExecutionTime(MetricOperation.FETCH_SHEET_DETAILS, () =>
           sheetsClient.spreadsheets.get({
             spreadsheetId: this.options.spreadsheetId,
           }),
         ),
-      );
+    );
 
     const sheetDetails: sheets_v4.Schema$Sheet | undefined = sheets.data.sheets?.find(
       sheet => sheet.properties?.title === this.options.sheet,
