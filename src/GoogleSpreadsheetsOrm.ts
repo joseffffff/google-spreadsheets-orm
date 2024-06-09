@@ -2,7 +2,7 @@ import { ParsedSpreadsheetCellValue } from './Query';
 import { Serializer } from './serialization/Serializer';
 import { GoogleSheetClientProvider } from './GoogleSheetClientProvider';
 import { Logger } from './utils/Logger';
-import { google, sheets_v4 } from 'googleapis';
+import { sheets_v4 } from 'googleapis';
 import { FieldType } from './serialization/FieldType';
 import { JsonFieldSerializer } from './serialization/JsonFieldSerializer';
 import { DateFieldSerializer } from './serialization/DateFieldSerializer';
@@ -12,25 +12,30 @@ import { GaxiosResponse } from 'gaxios';
 import { GoogleSpreadsheetOrmError } from './errors/GoogleSpreadsheetOrmError';
 import { Options } from './Options';
 import { BaseModel } from './BaseModel';
+import { Metrics, MilliSecondsByOperation } from './metrics/Metrics';
+import { MetricOperation } from './metrics/MetricOperation';
 import Schema$ValueRange = sheets_v4.Schema$ValueRange;
 
 export class GoogleSpreadsheetsOrm<T extends BaseModel> {
   private readonly logger: Logger;
   private readonly sheetsClientProvider: GoogleSheetClientProvider;
-  private readonly serializers: Map<string, Serializer<unknown>> = new Map();
+  private readonly serializers: Map<string, Serializer<unknown>>;
 
   private readonly instantiator: (rawRowObject: object) => T;
+  private readonly metricsCollector: Metrics;
 
   constructor(private readonly options: Options<T>) {
     this.logger = new Logger(options.verbose);
     this.sheetsClientProvider = GoogleSheetClientProvider.fromOptions(options, this.logger);
 
+    this.serializers = new Map<string, Serializer<unknown>>();
     this.serializers.set(FieldType.JSON, new JsonFieldSerializer());
     this.serializers.set(FieldType.DATE, new DateFieldSerializer(this.logger));
     this.serializers.set(FieldType.BOOLEAN, new BooleanSerializer());
     this.serializers.set(FieldType.NUMBER, new NumberSerializer());
 
     this.instantiator = options.instantiator ?? (r => r as T);
+    this.metricsCollector = new Metrics();
   }
 
   /**
@@ -136,15 +141,17 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
     );
 
     await this.sheetsClientProvider.handleQuotaRetries(sheetsClient =>
-      sheetsClient.spreadsheets.values.append({
-        spreadsheetId: this.options.spreadsheetId,
-        range: this.options.sheet,
-        insertDataOption: 'INSERT_ROWS',
-        valueInputOption: 'USER_ENTERED',
-        requestBody: {
-          values: entitiesDatabaseArrays,
-        },
-      }),
+      this.metricsCollector.trackExecutionTime(MetricOperation.SHEET_APPEND, () =>
+        sheetsClient.spreadsheets.values.append({
+          spreadsheetId: this.options.spreadsheetId,
+          range: this.options.sheet,
+          insertDataOption: 'INSERT_ROWS',
+          valueInputOption: 'USER_ENTERED',
+          requestBody: {
+            values: entitiesDatabaseArrays,
+          },
+        }),
+      ),
     );
   }
 
@@ -188,21 +195,23 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
     const sheetId = await this.fetchSheetDetails().then(sheetDetails => sheetDetails.properties?.sheetId);
 
     await this.sheetsClientProvider.handleQuotaRetries(sheetsClient =>
-      sheetsClient.spreadsheets.batchUpdate({
-        spreadsheetId: this.options.spreadsheetId,
-        requestBody: {
-          requests: rowNumbers.map(rowNumber => ({
-            deleteDimension: {
-              range: {
-                sheetId,
-                dimension: 'ROWS',
-                startIndex: rowNumber - 1, // index, not a rowNumber here, so -1
-                endIndex: rowNumber, // exclusive, to delete just one row
+      this.metricsCollector.trackExecutionTime(MetricOperation.SHEET_DELETE, () =>
+        sheetsClient.spreadsheets.batchUpdate({
+          spreadsheetId: this.options.spreadsheetId,
+          requestBody: {
+            requests: rowNumbers.map(rowNumber => ({
+              deleteDimension: {
+                range: {
+                  sheetId,
+                  dimension: 'ROWS',
+                  startIndex: rowNumber - 1, // index, not a rowNumber here, so -1
+                  endIndex: rowNumber, // exclusive, to delete just one row
+                },
               },
-            },
-          })),
-        },
-      }),
+            })),
+          },
+        }),
+      ),
     );
   }
 
@@ -229,31 +238,56 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
     const { headers, data } = await this.findSheetData();
 
     await this.sheetsClientProvider.handleQuotaRetries(sheetsClient =>
-      sheetsClient.spreadsheets.values.batchUpdate({
-        spreadsheetId: this.options.spreadsheetId,
-        requestBody: {
-          valueInputOption: 'USER_ENTERED',
-          includeValuesInResponse: false,
-          data: entities.map(entity => {
-            const rowNumber = this.rowNumber(data, entity.id);
-            const range = this.buildRangeToUpdate(headers, rowNumber);
-            const entityAsSheetArray = this.toSheetArrayFromHeaders(entity, headers);
+      this.metricsCollector.trackExecutionTime(MetricOperation.SHEET_UPDATE, () =>
+        sheetsClient.spreadsheets.values.batchUpdate({
+          spreadsheetId: this.options.spreadsheetId,
+          requestBody: {
+            valueInputOption: 'USER_ENTERED',
+            includeValuesInResponse: false,
+            data: entities.map(entity => {
+              const rowNumber = this.rowNumber(data, entity.id);
+              const range = this.buildRangeToUpdate(headers, rowNumber);
+              const entityAsSheetArray = this.toSheetArrayFromHeaders(entity, headers);
 
-            return {
-              range,
-              values: [entityAsSheetArray],
-            };
-          }),
-        },
-      }),
+              return {
+                range,
+                values: [entityAsSheetArray],
+              };
+            }),
+          },
+        }),
+      ),
     );
   }
 
+  /**
+   * Returns an object that contains request latencies, grouped by type of request.
+   *
+   * @returns An object that contains request latencies of the different requests performed to sheets API,
+   * grouped by type of request.
+   *
+   * @see {@link MetricOperation}
+   *
+   * @example
+   * ```ts
+   * {
+   *   FETCH_SHEET_DATA: [432, 551, 901],
+   *   SHEET_APPEND: [302, 104]
+   * }
+   * ```
+   */
+  public metrics(): MilliSecondsByOperation {
+    return this.metricsCollector.toObject();
+  }
+
   private async fetchSheetDetails(): Promise<sheets_v4.Schema$Sheet> {
-    const sheets = await this.sheetsClientProvider.handleQuotaRetries(sheetsClient =>
-      sheetsClient.spreadsheets.get({
-        spreadsheetId: this.options.spreadsheetId,
-      }),
+    const sheets: GaxiosResponse<sheets_v4.Schema$Spreadsheet> = await this.sheetsClientProvider.handleQuotaRetries(
+      sheetsClient =>
+        this.metricsCollector.trackExecutionTime(MetricOperation.FETCH_SHEET_DETAILS, () =>
+          sheetsClient.spreadsheets.get({
+            spreadsheetId: this.options.spreadsheetId,
+          }),
+        ),
     );
 
     const sheetDetails: sheets_v4.Schema$Sheet | undefined = sheets.data.sheets?.find(
@@ -331,32 +365,37 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
   }
 
   private async allSheetData(): Promise<string[][]> {
-    return this.sheetsClientProvider.handleQuotaRetries(async sheetsClient => {
-      this.logger.log(`Querying all sheet data table=${this.options.sheet}`);
-      const db: GaxiosResponse<Schema$ValueRange> = await sheetsClient.spreadsheets.values.get({
-        spreadsheetId: this.options.spreadsheetId,
-        range: this.options.sheet,
-      });
-      return db.data.values as string[][];
-    });
+    return this.sheetsClientProvider.handleQuotaRetries(async sheetsClient =>
+      this.metricsCollector.trackExecutionTime(MetricOperation.FETCH_SHEET_DATA, async () => {
+        this.logger.log(`Querying all sheet data table=${this.options.sheet}`);
+        const db: GaxiosResponse<Schema$ValueRange> = await sheetsClient.spreadsheets.values.get({
+          spreadsheetId: this.options.spreadsheetId,
+          range: this.options.sheet,
+        });
+        return db.data.values as string[][];
+      }),
+    );
   }
 
   private async sheetHeaders(): Promise<string[]> {
-    return this.sheetsClientProvider.handleQuotaRetries(async sheetsClient => {
-      this.logger.log(`Reading headers from table=${this.options.sheet}`);
-      const db: GaxiosResponse<Schema$ValueRange> = await sheetsClient.spreadsheets.values.get({
-        spreadsheetId: this.options.spreadsheetId,
-        range: `${this.options.sheet}!A1:1`, // users!A1:1
-      });
+    return this.sheetsClientProvider.handleQuotaRetries(async sheetsClient =>
+      this.metricsCollector.trackExecutionTime(MetricOperation.FETCH_SHEET_HEADERS, async () => {
+        this.logger.log(`Reading headers from table=${this.options.sheet}`);
 
-      const values = db.data.values;
+        const db: GaxiosResponse<Schema$ValueRange> = await sheetsClient.spreadsheets.values.get({
+          spreadsheetId: this.options.spreadsheetId,
+          range: `${this.options.sheet}!A1:1`, // users!A1:1
+        });
 
-      if (values && values.length > 0) {
-        return values[0] as string[];
-      }
+        const values = db.data.values;
 
-      throw new GoogleSpreadsheetOrmError(`Headers row not present in sheet ${this.options.sheet}`);
-    });
+        if (values && values.length > 0) {
+          return values[0] as string[];
+        }
+
+        throw new GoogleSpreadsheetOrmError(`Headers row not present in sheet ${this.options.sheet}`);
+      }),
+    );
   }
 
   private buildRangeToUpdate(headers: string[], rowNumber: number): string {
