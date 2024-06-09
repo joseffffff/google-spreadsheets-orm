@@ -227,4 +227,4 @@ Example of method response:
 }
 ```
 
-Check [MetricOperations](./src/metrics/MetricOperation.ts) class to see possible keys. 
+Check [MetricOperations](./src/metrics/MetricOperation.ts) class to see possible keys.
