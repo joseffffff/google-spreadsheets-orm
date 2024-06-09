@@ -213,3 +213,18 @@ await orm.updateAll(entitiesToUpdate);
 - **Remarks**:
   - It internally retrieves sheet data to ensure proper alignment of data and checking which row needs to update.
   - Quota retries are automatically handled to manage API rate limits.
+
+### `metrics()`
+
+Returns an object that contains request latencies, grouped by type of request.
+
+Example of method response:
+
+```typescript
+{
+  FETCH_SHEET_DATA: [432, 551, 901],
+  SHEET_APPEND: [302, 104]
+}
+```
+
+Check [MetricOperations](./src/metrics/MetricOperation.ts) class to see possible keys. 

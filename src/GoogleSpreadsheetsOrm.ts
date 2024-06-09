@@ -12,7 +12,7 @@ import { GaxiosResponse } from 'gaxios';
 import { GoogleSpreadsheetOrmError } from './errors/GoogleSpreadsheetOrmError';
 import { Options } from './Options';
 import { BaseModel } from './BaseModel';
-import { Metrics } from './metrics/Metrics';
+import { Metrics, MilliSecondsByOperation } from './metrics/Metrics';
 import { MetricOperation } from './metrics/MetricOperation';
 import Schema$ValueRange = sheets_v4.Schema$ValueRange;
 
@@ -22,11 +22,7 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
   private readonly serializers: Map<string, Serializer<unknown>>;
 
   private readonly instantiator: (rawRowObject: object) => T;
-
-  /**
-   * Contains the array of request latencies, grouped by request type.
-   */
-  public readonly metrics: Metrics;
+  private readonly metricsCollector: Metrics;
 
   constructor(private readonly options: Options<T>) {
     this.logger = new Logger(options.verbose);
@@ -39,7 +35,7 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
     this.serializers.set(FieldType.NUMBER, new NumberSerializer());
 
     this.instantiator = options.instantiator ?? (r => r as T);
-    this.metrics = new Metrics();
+    this.metricsCollector = new Metrics();
   }
 
   /**
@@ -145,7 +141,7 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
     );
 
     await this.sheetsClientProvider.handleQuotaRetries(sheetsClient =>
-      this.metrics.trackExecutionTime(MetricOperation.SHEET_APPEND, () =>
+      this.metricsCollector.trackExecutionTime(MetricOperation.SHEET_APPEND, () =>
         sheetsClient.spreadsheets.values.append({
           spreadsheetId: this.options.spreadsheetId,
           range: this.options.sheet,
@@ -199,7 +195,7 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
     const sheetId = await this.fetchSheetDetails().then(sheetDetails => sheetDetails.properties?.sheetId);
 
     await this.sheetsClientProvider.handleQuotaRetries(sheetsClient =>
-      this.metrics.trackExecutionTime(MetricOperation.SHEET_DELETE, () =>
+      this.metricsCollector.trackExecutionTime(MetricOperation.SHEET_DELETE, () =>
         sheetsClient.spreadsheets.batchUpdate({
           spreadsheetId: this.options.spreadsheetId,
           requestBody: {
@@ -242,7 +238,7 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
     const { headers, data } = await this.findSheetData();
 
     await this.sheetsClientProvider.handleQuotaRetries(sheetsClient =>
-      this.metrics.trackExecutionTime(MetricOperation.SHEET_UPDATE, () =>
+      this.metricsCollector.trackExecutionTime(MetricOperation.SHEET_UPDATE, () =>
         sheetsClient.spreadsheets.values.batchUpdate({
           spreadsheetId: this.options.spreadsheetId,
           requestBody: {
@@ -264,10 +260,30 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
     );
   }
 
+  /**
+   * Returns an object that contains request latencies, grouped by type of request.
+   *
+   * @returns An object that contains request latencies of the different requests performed to sheets API,
+   * grouped by type of request.
+   *
+   * @see {@link MetricOperation}
+   *
+   * @example
+   * ```ts
+   * {
+   *   FETCH_SHEET_DATA: [432, 551, 901],
+   *   SHEET_APPEND: [302, 104]
+   * }
+   * ```
+   */
+  public metrics(): MilliSecondsByOperation {
+    return this.metricsCollector.toObject();
+  }
+
   private async fetchSheetDetails(): Promise<sheets_v4.Schema$Sheet> {
     const sheets: GaxiosResponse<sheets_v4.Schema$Spreadsheet> = await this.sheetsClientProvider.handleQuotaRetries(
       sheetsClient =>
-        this.metrics.trackExecutionTime(MetricOperation.FETCH_SHEET_DETAILS, () =>
+        this.metricsCollector.trackExecutionTime(MetricOperation.FETCH_SHEET_DETAILS, () =>
           sheetsClient.spreadsheets.get({
             spreadsheetId: this.options.spreadsheetId,
           }),
@@ -350,7 +366,7 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
 
   private async allSheetData(): Promise<string[][]> {
     return this.sheetsClientProvider.handleQuotaRetries(async sheetsClient =>
-      this.metrics.trackExecutionTime(MetricOperation.FETCH_SHEET_DATA, async () => {
+      this.metricsCollector.trackExecutionTime(MetricOperation.FETCH_SHEET_DATA, async () => {
         this.logger.log(`Querying all sheet data table=${this.options.sheet}`);
         const db: GaxiosResponse<Schema$ValueRange> = await sheetsClient.spreadsheets.values.get({
           spreadsheetId: this.options.spreadsheetId,
@@ -363,7 +379,7 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
 
   private async sheetHeaders(): Promise<string[]> {
     return this.sheetsClientProvider.handleQuotaRetries(async sheetsClient =>
-      this.metrics.trackExecutionTime(MetricOperation.FETCH_SHEET_HEADERS, async () => {
+      this.metricsCollector.trackExecutionTime(MetricOperation.FETCH_SHEET_HEADERS, async () => {
         this.logger.log(`Reading headers from table=${this.options.sheet}`);
 
         const db: GaxiosResponse<Schema$ValueRange> = await sheetsClient.spreadsheets.values.get({
