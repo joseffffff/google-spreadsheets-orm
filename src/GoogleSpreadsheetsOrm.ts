@@ -15,6 +15,7 @@ import { BaseModel } from './BaseModel';
 import { Metrics, MilliSecondsByOperation } from './metrics/Metrics';
 import { MetricOperation } from './metrics/MetricOperation';
 import Schema$ValueRange = sheets_v4.Schema$ValueRange;
+import { CacheManager } from './cache/CacheManager';
 
 export class GoogleSpreadsheetsOrm<T extends BaseModel> {
   private readonly logger: Logger;
@@ -23,6 +24,8 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
 
   private readonly instantiator: (rawRowObject: object) => T;
   private readonly metricsCollector: Metrics;
+
+  private readonly cacheManager: CacheManager<T>;
 
   constructor(private readonly options: Options<T>) {
     this.logger = new Logger(options.verbose);
@@ -36,6 +39,8 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
 
     this.instantiator = options.instantiator ?? (r => r as T);
     this.metricsCollector = new Metrics();
+
+    this.cacheManager = new CacheManager(options);
   }
 
   /**
@@ -140,6 +145,8 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
       this.toSheetArrayFromHeaders(entity, headers),
     );
 
+    await this.cacheManager.invalidate();
+
     await this.sheetsClientProvider.handleQuotaRetries(sheetsClient =>
       this.metricsCollector.trackExecutionTime(MetricOperation.SHEET_APPEND, () =>
         sheetsClient.spreadsheets.values.append({
@@ -194,6 +201,8 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
 
     const sheetId = await this.fetchSheetDetails().then(sheetDetails => sheetDetails.properties?.sheetId);
 
+    await this.cacheManager.invalidate();
+
     await this.sheetsClientProvider.handleQuotaRetries(sheetsClient =>
       this.metricsCollector.trackExecutionTime(MetricOperation.SHEET_DELETE, () =>
         sheetsClient.spreadsheets.batchUpdate({
@@ -236,6 +245,8 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
     }
 
     const { headers, data } = await this.findSheetData();
+
+    await this.cacheManager.invalidate();
 
     await this.sheetsClientProvider.handleQuotaRetries(sheetsClient =>
       this.metricsCollector.trackExecutionTime(MetricOperation.SHEET_UPDATE, () =>
@@ -281,13 +292,14 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
   }
 
   private async fetchSheetDetails(): Promise<sheets_v4.Schema$Sheet> {
-    const sheets: GaxiosResponse<sheets_v4.Schema$Spreadsheet> = await this.sheetsClientProvider.handleQuotaRetries(
-      sheetsClient =>
+    const sheets: GaxiosResponse<sheets_v4.Schema$Spreadsheet> = await this.cacheManager.getSheetDetailsOr(() =>
+      this.sheetsClientProvider.handleQuotaRetries(sheetsClient =>
         this.metricsCollector.trackExecutionTime(MetricOperation.FETCH_SHEET_DETAILS, () =>
           sheetsClient.spreadsheets.get({
             spreadsheetId: this.options.spreadsheetId,
           }),
         ),
+      ),
     );
 
     const sheetDetails: sheets_v4.Schema$Sheet | undefined = sheets.data.sheets?.find(
@@ -361,40 +373,45 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
   private async findSheetData(): Promise<{ headers: string[]; data: string[][] }> {
     const data: string[][] = await this.allSheetData();
     const headers: string[] = data.shift() as string[];
+    await this.cacheManager.cacheHeaders(headers);
     return { headers, data };
   }
 
   private async allSheetData(): Promise<string[][]> {
-    return this.sheetsClientProvider.handleQuotaRetries(async sheetsClient =>
-      this.metricsCollector.trackExecutionTime(MetricOperation.FETCH_SHEET_DATA, async () => {
-        this.logger.log(`Querying all sheet data table=${this.options.sheet}`);
-        const db: GaxiosResponse<Schema$ValueRange> = await sheetsClient.spreadsheets.values.get({
-          spreadsheetId: this.options.spreadsheetId,
-          range: this.options.sheet,
-        });
-        return db.data.values as string[][];
-      }),
+    return this.cacheManager.getTableContentOr(() =>
+      this.sheetsClientProvider.handleQuotaRetries(async sheetsClient =>
+        this.metricsCollector.trackExecutionTime(MetricOperation.FETCH_SHEET_DATA, async () => {
+          this.logger.log(`Querying all sheet data table=${this.options.sheet}`);
+          const db: GaxiosResponse<Schema$ValueRange> = await sheetsClient.spreadsheets.values.get({
+            spreadsheetId: this.options.spreadsheetId,
+            range: this.options.sheet,
+          });
+          return db.data.values as string[][];
+        }),
+      ),
     );
   }
 
   private async sheetHeaders(): Promise<string[]> {
-    return this.sheetsClientProvider.handleQuotaRetries(async sheetsClient =>
-      this.metricsCollector.trackExecutionTime(MetricOperation.FETCH_SHEET_HEADERS, async () => {
-        this.logger.log(`Reading headers from table=${this.options.sheet}`);
+    return this.cacheManager.getTableHeadersOr(() =>
+      this.sheetsClientProvider.handleQuotaRetries(async sheetsClient =>
+        this.metricsCollector.trackExecutionTime(MetricOperation.FETCH_SHEET_HEADERS, async () => {
+          this.logger.log(`Reading headers from table=${this.options.sheet}`);
 
-        const db: GaxiosResponse<Schema$ValueRange> = await sheetsClient.spreadsheets.values.get({
-          spreadsheetId: this.options.spreadsheetId,
-          range: `${this.options.sheet}!A1:1`, // users!A1:1
-        });
+          const db: GaxiosResponse<Schema$ValueRange> = await sheetsClient.spreadsheets.values.get({
+            spreadsheetId: this.options.spreadsheetId,
+            range: `${this.options.sheet}!A1:1`, // Example:users!A1:1
+          });
 
-        const values = db.data.values;
+          const values = db.data.values;
 
-        if (values && values.length > 0) {
-          return values[0] as string[];
-        }
+          if (values && values.length > 0) {
+            return values[0] as string[];
+          }
 
-        throw new GoogleSpreadsheetOrmError(`Headers row not present in sheet ${this.options.sheet}`);
-      }),
+          throw new GoogleSpreadsheetOrmError(`Headers row not present in sheet ${this.options.sheet}`);
+        }),
+      ),
     );
   }
 
