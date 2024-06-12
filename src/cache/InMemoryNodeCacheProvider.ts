@@ -20,7 +20,7 @@ export class InMemoryNodeCacheProvider implements CacheProvider {
     this.innerCache.set(key, value);
   }
 
-  public async invalidate(): Promise<void> {
-    this.innerCache.flushAll();
+  public async invalidate(keys: string[]): Promise<void> {
+    this.innerCache.del(keys);
   }
 }

@@ -16,13 +16,14 @@ import { Metrics, MilliSecondsByOperation } from './metrics/Metrics';
 import { MetricOperation } from './metrics/MetricOperation';
 import Schema$ValueRange = sheets_v4.Schema$ValueRange;
 import { CacheManager } from './cache/CacheManager';
+import { Plain } from './utils/Plain';
 
 export class GoogleSpreadsheetsOrm<T extends BaseModel> {
   private readonly logger: Logger;
   private readonly sheetsClientProvider: GoogleSheetClientProvider;
   private readonly serializers: Map<string, Serializer<unknown>>;
 
-  private readonly instantiator: (rawRowObject: object) => T;
+  private readonly instantiator: (rawRowObject: Plain<T>) => T;
   private readonly metricsCollector: Metrics;
 
   private readonly cacheManager: CacheManager<T>;
@@ -367,7 +368,7 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
       }
     });
 
-    return this.instantiator(entity);
+    return this.instantiator(entity as Plain<T>);
   }
 
   private async findSheetData(): Promise<{ headers: string[]; data: string[][] }> {
