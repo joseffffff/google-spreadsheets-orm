@@ -3,6 +3,7 @@ import { BaseExternalAccountClient, GoogleAuth, OAuth2Client } from 'google-auth
 import { sheets_v4 } from 'googleapis';
 import { BaseModel } from './BaseModel';
 import { CacheProvider } from './cache/CacheProvider';
+import type { Plain } from './utils/Plain';
 
 export type AuthOptions = GoogleAuth | OAuth2Client | BaseExternalAccountClient | string;
 
@@ -63,7 +64,7 @@ export interface Options<T extends BaseModel> {
    *
    * This function is useful for performing custom instantiation logic, especially with class-based objects.
    */
-  readonly instantiator?: (values: object) => T;
+  readonly instantiator?: (values: Plain<T>) => T;
 
   /**
    * @default false

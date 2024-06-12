@@ -16,7 +16,7 @@ export class CacheManager<T extends BaseModel> {
     this.cacheProvider = options.cacheProvider ?? new InMemoryNodeCacheProvider(options.cacheTtlSeconds);
   }
 
-  public getTableHeadersOr(func: () => Promise<string[]>): Promise<string[]> {
+  public getHeadersOr(func: () => Promise<string[]>): Promise<string[]> {
     return this.getOr(`headers-${this.sheet}`, func);
   }
 
@@ -24,7 +24,7 @@ export class CacheManager<T extends BaseModel> {
     return this.cacheProvider.set(`headers-${this.sheet}`, headers);
   }
 
-  public getTableContentOr<T>(func: () => Promise<T[]>): Promise<T[]> {
+  public getContentOr<T>(func: () => Promise<T[]>): Promise<T[]> {
     return this.getOr(`content-${this.sheet}`, func);
   }
 

@@ -324,8 +324,8 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
     return index + 2;
   }
 
-  private toSheetArrayFromHeaders(entity: T, tableHeaders: string[]): ParsedSpreadsheetCellValue[] {
-    return tableHeaders.map(header => {
+  private toSheetArrayFromHeaders(entity: T, headers: string[]): ParsedSpreadsheetCellValue[] {
+    return headers.map(header => {
       const castingType: string | undefined = this.options?.castings?.[header as keyof T];
       const entityValue = entity[header as keyof T] as ParsedSpreadsheetCellValue | undefined;
 
@@ -378,10 +378,10 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
   }
 
   private async allSheetData(): Promise<string[][]> {
-    return this.cacheManager.getTableContentOr(() =>
+    return this.cacheManager.getContentOr(() =>
       this.sheetsClientProvider.handleQuotaRetries(async sheetsClient =>
         this.metricsCollector.trackExecutionTime(MetricOperation.FETCH_SHEET_DATA, async () => {
-          this.logger.log(`Querying all sheet data table=${this.options.sheet}`);
+          this.logger.log(`Querying all sheet data sheet=${this.options.sheet}`);
           const db: GaxiosResponse<Schema$ValueRange> = await sheetsClient.spreadsheets.values.get({
             spreadsheetId: this.options.spreadsheetId,
             range: this.options.sheet,
@@ -393,14 +393,14 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
   }
 
   private async sheetHeaders(): Promise<string[]> {
-    return this.cacheManager.getTableHeadersOr(() =>
+    return this.cacheManager.getHeadersOr(() =>
       this.sheetsClientProvider.handleQuotaRetries(async sheetsClient =>
         this.metricsCollector.trackExecutionTime(MetricOperation.FETCH_SHEET_HEADERS, async () => {
-          this.logger.log(`Reading headers from table=${this.options.sheet}`);
+          this.logger.log(`Reading headers from sheet=${this.options.sheet}`);
 
           const db: GaxiosResponse<Schema$ValueRange> = await sheetsClient.spreadsheets.values.get({
             spreadsheetId: this.options.spreadsheetId,
-            range: `${this.options.sheet}!A1:1`, // Example:users!A1:1
+            range: `${this.options.sheet}!A1:1`, // Example: users!A1:1
           });
 
           const values = db.data.values;
