@@ -14,8 +14,7 @@ class TestEntity {
     public readonly id: string,
     public readonly name: string,
     public readonly enabled: boolean,
-  ) {
-  }
+  ) {}
 }
 
 describe('Cached ORM tests', () => {
@@ -30,7 +29,7 @@ describe('Cached ORM tests', () => {
     sut = new GoogleSpreadsheetsOrm<TestEntity>({
       spreadsheetId: SPREADSHEET_ID,
       sheet: SHEET,
-      sheetClients: [ sheetClient ],
+      sheetClients: [sheetClient],
       verbose: false,
       cacheEnabled: true, // !!
       castings: {
@@ -42,17 +41,9 @@ describe('Cached ORM tests', () => {
 
   test('Should just call once to spreadsheets api if cache is enabled', async () => {
     const rawValues = [
-      [ 'id', 'name', 'enabled' ],
-      [
-        'ae222b54-182f-4958-b77f-26a3a04dff32',
-        'John Doe',
-        'false',
-      ],
-      [
-        'ae222b54-182f-4958-b77f-26a3a04dff33',
-        'Donh Joe',
-        'true',
-      ],
+      ['id', 'name', 'enabled'],
+      ['ae222b54-182f-4958-b77f-26a3a04dff32', 'John Doe', 'false'],
+      ['ae222b54-182f-4958-b77f-26a3a04dff33', 'Donh Joe', 'true'],
     ];
 
     (sheetClient.spreadsheets.values as MockProxy<sheets_v4.Resource$Spreadsheets$Values>).get.mockResolvedValue({
@@ -72,20 +63,11 @@ describe('Cached ORM tests', () => {
     expect(sheetClient.spreadsheets.values.get).toHaveBeenCalledTimes(1); // just one call
   });
 
-  test('create should correctly use cache and invalidate after write process', async () => {
-    // Configure table headers, so that save method can correctly match headers positions.
+  test('delete should correctly use cache and invalidate after write process', async () => {
     const rawValues = [
-      [ 'id', 'name', 'enabled' ],
-      [
-        'ae222b54-182f-4958-b77f-26a3a04dff32',
-        'John Doe',
-        'false',
-      ],
-      [
-        'ae222b54-182f-4958-b77f-26a3a04dff33',
-        'Donh Joe',
-        'true',
-      ],
+      ['id', 'name', 'enabled'],
+      ['ae222b54-182f-4958-b77f-26a3a04dff32', 'John Doe', 'false'],
+      ['ae222b54-182f-4958-b77f-26a3a04dff33', 'Donh Joe', 'true'],
     ];
 
     (sheetClient.spreadsheets.values as MockProxy<sheets_v4.Resource$Spreadsheets$Values>).get.mockResolvedValue({
@@ -106,7 +88,7 @@ describe('Cached ORM tests', () => {
       },
     } as never);
 
-    await sut.all(); // headers cached here
+    await sut.all(); // content cached here
 
     await sut.deleteById('ae222b54-182f-4958-b77f-26a3a04dff32');
     expect(sheetClient.spreadsheets.values.get).toHaveBeenCalledTimes(1); // create took headers from cache
@@ -117,9 +99,9 @@ describe('Cached ORM tests', () => {
     expect(sheetClient.spreadsheets.get).toHaveBeenCalledTimes(1); // Sheet details still in cache
   });
 
-  test('delete should correctly use cache and invalidate after write process', async () => {
+  test('create should correctly use cache and invalidate after write process', async () => {
     // Configure table headers, so that save method can correctly match headers positions.
-    const rawValues = [ [ 'id', 'createdAt', 'name', 'jsonField', 'current', 'year' ] ];
+    const rawValues = [['id', 'createdAt', 'name', 'jsonField', 'current', 'year']];
 
     (sheetClient.spreadsheets.values as MockProxy<sheets_v4.Resource$Spreadsheets$Values>).get.mockResolvedValue({
       data: {
@@ -134,6 +116,34 @@ describe('Cached ORM tests', () => {
     await sut.create(entity);
 
     expect(sheetClient.spreadsheets.values.get).toHaveBeenCalledTimes(1); // create took headers from cache
+
+    await sut.all(); // Cache is invalidated on create, this should do another fetch
+    expect(sheetClient.spreadsheets.values.get).toHaveBeenCalledTimes(2);
+  });
+
+  test('update should correctly use cache and invalidate after write process', async () => {
+    const rawValues = [
+      ['id', 'name', 'enabled'],
+      ['ae222b54-182f-4958-b77f-26a3a04dff32', 'John Doe', 'false'],
+      ['ae222b54-182f-4958-b77f-26a3a04dff33', 'Donh Joe', 'true'],
+    ];
+
+    (sheetClient.spreadsheets.values as MockProxy<sheets_v4.Resource$Spreadsheets$Values>).get.mockResolvedValue({
+      data: {
+        values: rawValues,
+      },
+    } as never);
+
+    const entity = new TestEntity(
+      'ae222b54-182f-4958-b77f-26a3a04dff32',
+      'John Doe 2', // updated
+      true, // updated
+    );
+
+    await sut.all(); // content cached here
+
+    await sut.update(entity);
+    expect(sheetClient.spreadsheets.values.get).toHaveBeenCalledTimes(1); // took data from cache
 
     await sut.all(); // Cache is invalidated on create, this should do another fetch
     expect(sheetClient.spreadsheets.values.get).toHaveBeenCalledTimes(2);

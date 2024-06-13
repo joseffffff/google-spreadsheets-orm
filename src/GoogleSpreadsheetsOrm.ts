@@ -71,7 +71,7 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
    * @returns A Promise that resolves when the row creation process is completed successfully.
    */
   public async create(entity: T): Promise<void> {
-    return this.createAll([ entity ]);
+    return this.createAll([entity]);
   }
 
   /**
@@ -101,7 +101,7 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
    * @returns A Promise that resolves when the row deletion process is completed successfully.
    */
   public deleteById(entityId: string): Promise<void> {
-    return this.deleteAllByIdIn([ entityId ]);
+    return this.deleteAllByIdIn([entityId]);
   }
 
   /**
@@ -116,7 +116,7 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
    * @returns A Promise that resolves when the row update process is completed successfully.
    */
   public async update(entity: T): Promise<void> {
-    return this.updateAll([ entity ]);
+    return this.updateAll([entity]);
   }
 
   /**
@@ -194,14 +194,14 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
       return;
     }
 
-    const [ rowNumbers, sheetId ] = await Promise.all([
-      this.findSheetData()
-        .then(({ data }) => entityIds
+    const [rowNumbers, sheetId] = await Promise.all([
+      this.findSheetData().then(({ data }) =>
+        entityIds
           .map(entityId => this.rowNumber(data, entityId))
           // rows are deleted from bottom to top
-          .sort((a, b) => b - a)),
-      this.fetchSheetDetails()
-        .then(sheetDetails => sheetDetails.properties!.sheetId),
+          .sort((a, b) => b - a),
+      ),
+      this.fetchSheetDetails().then(sheetDetails => sheetDetails.properties!.sheetId),
     ]);
 
     await this.cacheManager.invalidate();
@@ -265,7 +265,7 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
 
               return {
                 range,
-                values: [ entityAsSheetArray ],
+                values: [entityAsSheetArray],
               };
             }),
           },
