@@ -146,8 +146,6 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
       this.toSheetArrayFromHeaders(entity, headers),
     );
 
-    await this.cacheManager.invalidate();
-
     await this.sheetsClientProvider.handleQuotaRetries(sheetsClient =>
       this.metricsCollector.trackExecutionTime(MetricOperation.SHEET_APPEND, () =>
         sheetsClient.spreadsheets.values.append({
@@ -161,6 +159,8 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
         }),
       ),
     );
+
+    await this.invalidateCaches();
   }
 
   /**
@@ -204,8 +204,6 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
       this.fetchSheetDetails().then(sheetDetails => sheetDetails.properties!.sheetId),
     ]);
 
-    await this.cacheManager.invalidate();
-
     await this.sheetsClientProvider.handleQuotaRetries(sheetsClient =>
       this.metricsCollector.trackExecutionTime(MetricOperation.SHEET_DELETE, () =>
         sheetsClient.spreadsheets.batchUpdate({
@@ -225,6 +223,8 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
         }),
       ),
     );
+
+    await this.invalidateCaches();
   }
 
   /**
@@ -249,8 +249,6 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
 
     const { headers, data } = await this.findSheetData();
 
-    await this.cacheManager.invalidate();
-
     await this.sheetsClientProvider.handleQuotaRetries(sheetsClient =>
       this.metricsCollector.trackExecutionTime(MetricOperation.SHEET_UPDATE, () =>
         sheetsClient.spreadsheets.values.batchUpdate({
@@ -272,6 +270,14 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
         }),
       ),
     );
+
+    await this.invalidateCaches();
+  }
+
+  private async invalidateCaches() {
+    if (this.options.cacheEnabled) {
+      await this.cacheManager.invalidate();
+    }
   }
 
   /**
