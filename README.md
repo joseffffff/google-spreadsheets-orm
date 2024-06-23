@@ -130,7 +130,7 @@ import { GoogleSpreadsheetOrm, CacheProvider } from 'google-spreadsheets-orm';
 
 class RedisCacheProvider implements CacheProvider {
   private dummyRedisClient;
-  
+
   public async get<T>(key: string): Promise<T | undefined> {
     return this.dummyRedisClient.get(key);
   }
