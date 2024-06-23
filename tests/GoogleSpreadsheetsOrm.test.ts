@@ -1,5 +1,5 @@
 import { sheets_v4 } from 'googleapis';
-import { GoogleSpreadsheetsOrm } from '../src/GoogleSpreadsheetsOrm';
+import { GoogleSpreadsheetsOrm } from '../src';
 import { FieldType } from '../src/serialization/FieldType';
 import { mock, MockProxy } from 'jest-mock-extended';
 import Resource$Spreadsheets$Values = sheets_v4.Resource$Spreadsheets$Values;
@@ -41,6 +41,7 @@ describe(GoogleSpreadsheetsOrm.name, () => {
       sheet: SHEET,
       sheetClients,
       verbose: false,
+      cacheEnabled: false,
       castings: {
         createdAt: FieldType.DATE,
         jsonField: FieldType.JSON,

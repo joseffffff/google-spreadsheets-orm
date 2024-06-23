@@ -2,6 +2,8 @@ import { Castings } from './Castings';
 import { BaseExternalAccountClient, GoogleAuth, OAuth2Client } from 'google-auth-library';
 import { sheets_v4 } from 'googleapis';
 import { BaseModel } from './BaseModel';
+import { CacheProvider } from './cache/CacheProvider';
+import type { Plain } from './utils/Plain';
 
 export type AuthOptions = GoogleAuth | OAuth2Client | BaseExternalAccountClient | string;
 
@@ -62,5 +64,28 @@ export interface Options<T extends BaseModel> {
    *
    * This function is useful for performing custom instantiation logic, especially with class-based objects.
    */
-  readonly instantiator?: (values: object) => T;
+  readonly instantiator?: (values: Plain<T>) => T;
+
+  /**
+   * Flag to enable/disable cache, by default an in-memory implementation will be used.
+   * Any other implementation can be injected in {@link cacheProvider} property.
+   *
+   * @default false, (disabled).
+   */
+  readonly cacheEnabled?: boolean;
+
+  /**
+   * Number of seconds in which cache data will be used. Only used when using the default CacheProvider implementation.
+   *
+   * @default 30 seconds
+   */
+  readonly cacheTtlSeconds?: number;
+
+  /**
+   * Implementation for CacheProvider, will only be used if {@link `cacheEnabled`} is `true`.
+   *
+   * @default By default, an instance of {@link InMemoryNodeCacheProvider} will be used, but can be replaced
+   * by any other {@link CacheProvider} implementation.
+   */
+  readonly cacheProvider?: CacheProvider;
 }

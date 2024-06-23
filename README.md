@@ -4,20 +4,15 @@ Lightweight Node.js library simplifying Google Sheets integration, offering a ro
 object-relational mapping (ORM) interface, following the data-mapper pattern.
 This library enables seamless CRUD operations, including batch operations, ensuring a strict Typescript typing.
 
-> [!WARNING]  
-> This library is still under construction, CRUD functionality will be available in a few weeks.
-
-## Quickstart
-
-### Install
+## Install
 
 ```shell
 npm install google-spreadsheets-orm
 ```
 
-### Configuration
+## Quickstart
 
-Here's an example of an instantiation using `CustomerModel` interface as type for the `customers` sheet rows.
+Here's a quick example using `CustomerModel` interface as type for the `customers` sheet rows.
 
 The example is using `GoogleAuth` from [google-auth-library](https://github.com/googleapis/google-auth-library-nodejs)
 as authentication, but any other auth option from the auth library is available to use, more info on the
@@ -57,6 +52,10 @@ await orm.create({
 });
 ```
 
+More info about available methods in [Methods Overview](#methods-overview) section.
+
+## Configuration
+
 ### Authentication Options
 
 GoogleSpreadsheetORM supports various authentication options for interacting with Google Sheets API. You can provide
@@ -74,6 +73,90 @@ handled when multiple authentication options are provided.
 Alternatively, you can directly provide an array of `sheets_v4.Sheets` client instances through the `sheetClients`
 property. GoogleSpreadsheetORM distributes operations among the provided clients for load balancing. Quota retries for
 API rate limiting are automatically handled when using multiple clients.
+
+### Cache
+
+Google Spreadsheets API can usually have high latencies, so using a Cache can be a good way to work around that issue.
+
+Enabling the cache is as simple as:
+
+```typescript
+import { GoogleAuth } from 'google-auth-library';
+import { GoogleSpreadsheetOrm } from 'google-spreadsheets-orm';
+
+interface CustomerModel {
+  id: string;
+  dateCreated: Date;
+  name: string;
+}
+
+const orm = new GoogleSpreadsheetOrm<CustomerModel>({
+  spreadsheetId: 'my-spreadsheet-id',
+  sheet: 'customers',
+  auth: new GoogleAuth({
+    scopes: 'https://www.googleapis.com/auth/spreadsheets',
+  }),
+  castings: {
+    dateCreated: FieldType.DATE,
+  },
+  cacheEnabled: true, // Enabling Cache ✅
+  cacheTtlSeconds: 60, // Data will be cached for one minute ⏱️
+});
+
+const firstCallResult = await orm.all(); // Data is fetched from spreadsheet and loaded into cache
+const secondCallResult = await orm.all(); // Data is taken from cache 🏎️💨
+const thirdCallResult = await orm.all(); // 🏎️💨
+// more `all` calls...
+
+// Any write operation will invalidate the cache
+orm.create({
+  id: '1111-2222-3333-4444',
+  dateCreated: new Date(),
+  name: 'John Doe',
+});
+
+await orm.all(); // Data is fetched from spreadsheet again
+```
+
+### Cache Providers
+
+By default, an in-memory implementation is used. However, that might not be enough for some situations. In those cases
+a custom implementation can be injected into the ORM, following the [`CacheProvider`](src/cache/CacheProvider.ts)
+contract, example:
+
+```typescript
+import { GoogleAuth } from 'google-auth-library';
+import { GoogleSpreadsheetOrm, CacheProvider } from 'google-spreadsheets-orm';
+
+class RedisCacheProvider implements CacheProvider {
+  private dummyRedisClient;
+
+  public async get<T>(key: string): Promise<T | undefined> {
+    return this.dummyRedisClient.get(key);
+  }
+
+  public async set<T>(key: string, value: T): Promise<void> {
+    this.dummyRedisClient.set(key, value);
+  }
+
+  public async invalidate(keys: string[]): Promise<void> {
+    this.dummyRedisClient.del(keys);
+  }
+}
+
+const orm = new GoogleSpreadsheetOrm<CustomerModel>({
+  spreadsheetId: 'my-spreadsheet-id',
+  sheet: 'customers',
+  auth: new GoogleAuth({
+    scopes: 'https://www.googleapis.com/auth/spreadsheets',
+  }),
+  castings: {
+    dateCreated: FieldType.DATE,
+  },
+  cacheEnabled: true, // Enabling Cache ✅
+  cacheProvider: new RedisCacheProvider(), // Using my custom provider 🤌
+});
+```
 
 ## Methods Overview
 

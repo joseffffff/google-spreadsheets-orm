@@ -15,14 +15,18 @@ import { BaseModel } from './BaseModel';
 import { Metrics, MilliSecondsByOperation } from './metrics/Metrics';
 import { MetricOperation } from './metrics/MetricOperation';
 import Schema$ValueRange = sheets_v4.Schema$ValueRange;
+import { CacheManager } from './cache/CacheManager';
+import { Plain } from './utils/Plain';
 
 export class GoogleSpreadsheetsOrm<T extends BaseModel> {
   private readonly logger: Logger;
   private readonly sheetsClientProvider: GoogleSheetClientProvider;
   private readonly serializers: Map<string, Serializer<unknown>>;
 
-  private readonly instantiator: (rawRowObject: object) => T;
+  private readonly instantiator: (rawRowObject: Plain<T>) => T;
   private readonly metricsCollector: Metrics;
+
+  private readonly cacheManager: CacheManager<T>;
 
   constructor(private readonly options: Options<T>) {
     this.logger = new Logger(options.verbose);
@@ -36,6 +40,8 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
 
     this.instantiator = options.instantiator ?? (r => r as T);
     this.metricsCollector = new Metrics();
+
+    this.cacheManager = new CacheManager(options);
   }
 
   /**
@@ -153,6 +159,8 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
         }),
       ),
     );
+
+    await this.invalidateCaches();
   }
 
   /**
@@ -186,13 +194,15 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
       return;
     }
 
-    const { data } = await this.findSheetData();
-    const rowNumbers = entityIds
-      .map(entityId => this.rowNumber(data, entityId))
-      // rows are deleted from bottom to top
-      .sort((a, b) => b - a);
-
-    const sheetId = await this.fetchSheetDetails().then(sheetDetails => sheetDetails.properties?.sheetId);
+    const [rowNumbers, sheetId] = await Promise.all([
+      this.findSheetData().then(({ data }) =>
+        entityIds
+          .map(entityId => this.rowNumber(data, entityId))
+          // rows are deleted from bottom to top
+          .sort((a, b) => b - a),
+      ),
+      this.fetchSheetDetails().then(sheetDetails => sheetDetails.properties!.sheetId),
+    ]);
 
     await this.sheetsClientProvider.handleQuotaRetries(sheetsClient =>
       this.metricsCollector.trackExecutionTime(MetricOperation.SHEET_DELETE, () =>
@@ -213,6 +223,8 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
         }),
       ),
     );
+
+    await this.invalidateCaches();
   }
 
   /**
@@ -258,6 +270,14 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
         }),
       ),
     );
+
+    await this.invalidateCaches();
+  }
+
+  private async invalidateCaches() {
+    if (this.options.cacheEnabled) {
+      await this.cacheManager.invalidate();
+    }
   }
 
   /**
@@ -281,13 +301,14 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
   }
 
   private async fetchSheetDetails(): Promise<sheets_v4.Schema$Sheet> {
-    const sheets: GaxiosResponse<sheets_v4.Schema$Spreadsheet> = await this.sheetsClientProvider.handleQuotaRetries(
-      sheetsClient =>
+    const sheets: GaxiosResponse<sheets_v4.Schema$Spreadsheet> = await this.cacheManager.getSheetDetailsOr(() =>
+      this.sheetsClientProvider.handleQuotaRetries(sheetsClient =>
         this.metricsCollector.trackExecutionTime(MetricOperation.FETCH_SHEET_DETAILS, () =>
           sheetsClient.spreadsheets.get({
             spreadsheetId: this.options.spreadsheetId,
           }),
         ),
+      ),
     );
 
     const sheetDetails: sheets_v4.Schema$Sheet | undefined = sheets.data.sheets?.find(
@@ -312,8 +333,8 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
     return index + 2;
   }
 
-  private toSheetArrayFromHeaders(entity: T, tableHeaders: string[]): ParsedSpreadsheetCellValue[] {
-    return tableHeaders.map(header => {
+  private toSheetArrayFromHeaders(entity: T, headers: string[]): ParsedSpreadsheetCellValue[] {
+    return headers.map(header => {
       const castingType: string | undefined = this.options?.castings?.[header as keyof T];
       const entityValue = entity[header as keyof T] as ParsedSpreadsheetCellValue | undefined;
 
@@ -355,46 +376,51 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
       }
     });
 
-    return this.instantiator(entity);
+    return this.instantiator(entity as Plain<T>);
   }
 
   private async findSheetData(): Promise<{ headers: string[]; data: string[][] }> {
     const data: string[][] = await this.allSheetData();
     const headers: string[] = data.shift() as string[];
+    await this.cacheManager.cacheHeaders(headers);
     return { headers, data };
   }
 
   private async allSheetData(): Promise<string[][]> {
-    return this.sheetsClientProvider.handleQuotaRetries(async sheetsClient =>
-      this.metricsCollector.trackExecutionTime(MetricOperation.FETCH_SHEET_DATA, async () => {
-        this.logger.log(`Querying all sheet data table=${this.options.sheet}`);
-        const db: GaxiosResponse<Schema$ValueRange> = await sheetsClient.spreadsheets.values.get({
-          spreadsheetId: this.options.spreadsheetId,
-          range: this.options.sheet,
-        });
-        return db.data.values as string[][];
-      }),
+    return this.cacheManager.getContentOr(() =>
+      this.sheetsClientProvider.handleQuotaRetries(async sheetsClient =>
+        this.metricsCollector.trackExecutionTime(MetricOperation.FETCH_SHEET_DATA, async () => {
+          this.logger.log(`Querying all sheet data sheet=${this.options.sheet}`);
+          const db: GaxiosResponse<Schema$ValueRange> = await sheetsClient.spreadsheets.values.get({
+            spreadsheetId: this.options.spreadsheetId,
+            range: this.options.sheet,
+          });
+          return db.data.values as string[][];
+        }),
+      ),
     );
   }
 
   private async sheetHeaders(): Promise<string[]> {
-    return this.sheetsClientProvider.handleQuotaRetries(async sheetsClient =>
-      this.metricsCollector.trackExecutionTime(MetricOperation.FETCH_SHEET_HEADERS, async () => {
-        this.logger.log(`Reading headers from table=${this.options.sheet}`);
+    return this.cacheManager.getHeadersOr(() =>
+      this.sheetsClientProvider.handleQuotaRetries(async sheetsClient =>
+        this.metricsCollector.trackExecutionTime(MetricOperation.FETCH_SHEET_HEADERS, async () => {
+          this.logger.log(`Reading headers from sheet=${this.options.sheet}`);
 
-        const db: GaxiosResponse<Schema$ValueRange> = await sheetsClient.spreadsheets.values.get({
-          spreadsheetId: this.options.spreadsheetId,
-          range: `${this.options.sheet}!A1:1`, // users!A1:1
-        });
+          const db: GaxiosResponse<Schema$ValueRange> = await sheetsClient.spreadsheets.values.get({
+            spreadsheetId: this.options.spreadsheetId,
+            range: `${this.options.sheet}!A1:1`, // Example: users!A1:1
+          });
 
-        const values = db.data.values;
+          const values = db.data.values;
 
-        if (values && values.length > 0) {
-          return values[0] as string[];
-        }
+          if (values && values.length > 0) {
+            return values[0] as string[];
+          }
 
-        throw new GoogleSpreadsheetOrmError(`Headers row not present in sheet ${this.options.sheet}`);
-      }),
+          throw new GoogleSpreadsheetOrmError(`Headers row not present in sheet ${this.options.sheet}`);
+        }),
+      ),
     );
   }
 
