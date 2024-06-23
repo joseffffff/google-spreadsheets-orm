@@ -14,8 +14,7 @@ class TestEntity {
     public readonly id: string,
     public readonly name: string,
     public readonly enabled: boolean,
-  ) {
-  }
+  ) {}
 }
 
 describe('Cached ORM tests', () => {
