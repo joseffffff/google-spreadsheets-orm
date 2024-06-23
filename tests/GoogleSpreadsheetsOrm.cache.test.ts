@@ -14,7 +14,8 @@ class TestEntity {
     public readonly id: string,
     public readonly name: string,
     public readonly enabled: boolean,
-  ) {}
+  ) {
+  }
 }
 
 describe('Cached ORM tests', () => {
@@ -32,6 +33,7 @@ describe('Cached ORM tests', () => {
       sheetClients: [sheetClient],
       verbose: false,
       cacheEnabled: true, // !!
+      cacheTtlSeconds: 1,
       castings: {
         enabled: FieldType.BOOLEAN,
       },
@@ -61,6 +63,11 @@ describe('Cached ORM tests', () => {
     ]);
     expect(firstResult).toStrictEqual(secondResult);
     expect(sheetClient.spreadsheets.values.get).toHaveBeenCalledTimes(1); // just one call
+
+    await sleep(1000); // 1-second sleep
+
+    await sut.all();
+    expect(sheetClient.spreadsheets.values.get).toHaveBeenCalledTimes(2); // New call again after ttl consumed
   });
 
   test('delete should correctly use cache and invalidate after write process', async () => {
@@ -148,4 +155,8 @@ describe('Cached ORM tests', () => {
     await sut.all(); // Cache is invalidated on create, this should do another fetch
     expect(sheetClient.spreadsheets.values.get).toHaveBeenCalledTimes(2);
   });
+
+  function sleep(millis: number): Promise<void> {
+    return new Promise((resolve, reject) => setTimeout(resolve, millis));
+  }
 });
