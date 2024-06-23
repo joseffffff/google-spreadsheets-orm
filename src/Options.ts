@@ -67,17 +67,25 @@ export interface Options<T extends BaseModel> {
   readonly instantiator?: (values: Plain<T>) => T;
 
   /**
-   * @default false
+   * Flag to enable/disable cache, by default an in-memory implementation will be used.
+   * Any other implementation can be injected in {@link cacheProvider} property.
+   *
+   * @default false, (disabled).
    */
   readonly cacheEnabled?: boolean;
 
   /**
-   * @default false
+   * Number of seconds in which cache data will be used. Only used when using the default CacheProvider implementation.
+   *
+   * @default 30 seconds
    */
   readonly cacheTtlSeconds?: number;
 
   /**
+   * Implementation for CacheProvider, will only be used if {@link `cacheEnabled`} is `true`.
    *
+   * @default By default, an instance of {@link InMemoryNodeCacheProvider} will be used, but can be replaced
+   * by any other {@link CacheProvider} implementation.
    */
   readonly cacheProvider?: CacheProvider;
 }

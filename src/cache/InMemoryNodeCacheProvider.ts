@@ -1,7 +1,7 @@
 import { CacheProvider } from './CacheProvider';
 import NodeCache from 'node-cache';
 
-const DEFAULT_CACHE_TTL_SECONDS: number = 10;
+const DEFAULT_CACHE_TTL_SECONDS: number = 30;
 
 export class InMemoryNodeCacheProvider implements CacheProvider {
   private readonly innerCache: NodeCache;
