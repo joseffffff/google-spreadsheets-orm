@@ -12,7 +12,7 @@ npm install google-spreadsheets-orm
 
 ## Quickstart
 
-Here's a quick example of an instantiation using `CustomerModel` interface as type for the `customers` sheet rows.
+Here's a quick example using `CustomerModel` interface as type for the `customers` sheet rows.
 
 The example is using `GoogleAuth` from [google-auth-library](https://github.com/googleapis/google-auth-library-nodejs)
 as authentication, but any other auth option from the auth library is available to use, more info on the
