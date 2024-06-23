@@ -15,6 +15,10 @@ export class NumberSerializer implements Serializer<number> {
   }
 
   public toSpreadsheetValue(value: number | undefined): string {
-    return value ? value.toString() : '';
+    if (value === undefined) {
+      return ''
+    }
+
+    return value.toString();
   }
 }
