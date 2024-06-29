@@ -166,7 +166,7 @@ describe(GoogleSpreadsheetsOrm.name, () => {
     const entities = await sut.all({
       filter: {
         current: true,
-      }
+      },
     });
 
     const expectedValues: TestEntity[] = [
@@ -231,11 +231,8 @@ describe(GoogleSpreadsheetsOrm.name, () => {
 
     const entities = await sut.all({
       filter: {
-        id: [
-          'ae222b54-182f-4958-b77f-26a3a04dff32',
-          'ae222b54-182f-4958-b77f-26a3a04dff33',
-        ],
-      }
+        id: ['ae222b54-182f-4958-b77f-26a3a04dff32', 'ae222b54-182f-4958-b77f-26a3a04dff33'],
+      },
     });
 
     const expectedValues: TestEntity[] = [

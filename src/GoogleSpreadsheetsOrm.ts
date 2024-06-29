@@ -338,8 +338,8 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
       [column in keyof T]?: ParsedSpreadsheetCellValue | ParsedSpreadsheetCellValue[];
     } = {},
     entity: T,
-  ): boolean => Object.entries(filters)
-    .every(([entityField, fieldValue]) => {
+  ): boolean =>
+    Object.entries(filters).every(([entityField, fieldValue]) => {
       const entityValue = entity[entityField as keyof T];
 
       if (Array.isArray(fieldValue)) {
