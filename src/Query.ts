@@ -5,10 +5,10 @@ export type Query<T> = {
   filter?: {
     [column in keyof T]?: ParsedSpreadsheetCellValue | ParsedSpreadsheetCellValue[];
   };
-  paging?: PagingQuery;
+  // paging?: PagingQuery;
 };
 
-export type PagingQuery = {
-  from?: number;
-  to?: number;
-};
+// export type PagingQuery = {
+//   from?: number;
+//   to?: number;
+// };
