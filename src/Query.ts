@@ -1,9 +1,14 @@
-export type ParsedSpreadsheetCellValue = string | number | boolean | Date | object;
+export type ParsedSpreadsheetCellValue = string | number | boolean | Date;
+
 
 export type Query<T> = {
-  [column in keyof T]?: ParsedSpreadsheetCellValue;
+  filter?: {
+    [column in keyof T]?: ParsedSpreadsheetCellValue | ParsedSpreadsheetCellValue[];
+  };
+  paging?: PagingQuery;
 };
 
-export type InQuery<T> = {
-  [column in keyof T]?: ParsedSpreadsheetCellValue[];
+export type PagingQuery = {
+  from?: number;
+  to?: number;
 };

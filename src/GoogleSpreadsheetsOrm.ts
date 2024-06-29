@@ -1,4 +1,4 @@
-import { ParsedSpreadsheetCellValue } from './Query';
+import { ParsedSpreadsheetCellValue, Query } from './Query';
 import { Serializer } from './serialization/Serializer';
 import { GoogleSheetClientProvider } from './GoogleSheetClientProvider';
 import { Logger } from './utils/Logger';
@@ -53,9 +53,11 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
    *
    * @returns A Promise that resolves to an array of entities of type T, representing all rows retrieved from the sheet.
    */
-  public async all(): Promise<T[]> {
+  public async all(options: Query<T> = {}): Promise<T[]> {
     const { data, headers } = await this.findSheetData();
-    return this.rowsToEntities(data, headers);
+    const filters = options?.filter ?? {};
+    return this.rowsToEntities(data, headers)
+      .filter(entity => Object.entries(filters).every(([entityField, fieldValue]) => entity[entityField as keyof T] === fieldValue));
   }
 
   /**
