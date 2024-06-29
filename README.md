@@ -174,6 +174,26 @@ const myEntities = await orm.all();
 - **Returns**: A Promise that resolves to an array of entities of type `T`, representing all rows retrieved from the
   sheet.
 
+#### Filtering
+
+`all` method also accepts an object to filter data from spreadsheet, example:
+
+```typescript
+orm.all({
+  filter: {
+    // Filter by specific value
+    id: '1111-2222-3333-4444',
+    // Or... Filter by values contained in an array
+    id: [
+      '1111-1111-1111-1111',
+      '2222-2222-2222-2222',
+      '3333-3333-3333-3333',
+      '4444-4444-4444-4444',
+    ],
+  },
+});
+```
+
 ### `create(entity: T)`
 
 Creates a new row in the specified sheet with the provided entity data.

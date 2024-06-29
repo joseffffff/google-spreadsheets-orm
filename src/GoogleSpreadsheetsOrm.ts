@@ -52,6 +52,8 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
    * It then parses the retrieved data and serializes it into entities according to the field types defined in the Castings configuration.
    *
    * @returns A Promise that resolves to an array of entities of type T, representing all rows retrieved from the sheet.
+   *
+   * @param options - Object to filter data from spreadsheet
    */
   public async all(options: Query<T> = {}): Promise<T[]> {
     const { data, headers } = await this.findSheetData();
