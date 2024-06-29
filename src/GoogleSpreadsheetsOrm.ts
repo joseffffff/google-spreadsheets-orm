@@ -1,4 +1,4 @@
-import { ParsedSpreadsheetCellValue } from './Query';
+import { ParsedSpreadsheetCellValue, Query } from './Query';
 import { Serializer } from './serialization/Serializer';
 import { GoogleSheetClientProvider } from './GoogleSheetClientProvider';
 import { Logger } from './utils/Logger';
@@ -53,9 +53,9 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
    *
    * @returns A Promise that resolves to an array of entities of type T, representing all rows retrieved from the sheet.
    */
-  public async all(): Promise<T[]> {
+  public async all(options: Query<T> = {}): Promise<T[]> {
     const { data, headers } = await this.findSheetData();
-    return this.rowsToEntities(data, headers);
+    return this.rowsToEntities(data, headers).filter(entity => this.shouldIncludeRow(options?.filter, entity));
   }
 
   /**
@@ -332,6 +332,22 @@ export class GoogleSpreadsheetsOrm<T extends BaseModel> {
     // +1 because no headers in array and +1 because row numbers starts at 1
     return index + 2;
   }
+
+  private shouldIncludeRow = (
+    filters: {
+      [column in keyof T]?: ParsedSpreadsheetCellValue | ParsedSpreadsheetCellValue[];
+    } = {},
+    entity: T,
+  ): boolean =>
+    Object.entries(filters).every(([entityField, fieldValue]) => {
+      const entityValue = entity[entityField as keyof T];
+
+      if (Array.isArray(fieldValue)) {
+        return fieldValue.includes(entityValue);
+      }
+
+      return entityValue === fieldValue;
+    });
 
   private toSheetArrayFromHeaders(entity: T, headers: string[]): ParsedSpreadsheetCellValue[] {
     return headers.map(header => {
