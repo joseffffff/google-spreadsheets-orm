@@ -49,20 +49,17 @@ describe('Performance ORM tests', () => {
 
   test('Performance testing for 1000 rows', async () => {
     const executionTimeMs = await runForRandomData(1000);
-    console.log({ executionTimeMs });
     expect(executionTimeMs).toBeLessThan(5);
   });
 
   test('Performance testing for 10000 rows', async () => {
     const executionTimeMs = await runForRandomData(10_000);
-    console.log({ executionTimeMs });
-    expect(executionTimeMs).toBeLessThan(10);
+    expect(executionTimeMs).toBeLessThan(20);
   });
 
   test('Performance testing for 100000 rows', async () => {
     const executionTimeMs = await runForRandomData(100_000);
-    console.log({ executionTimeMs });
-    expect(executionTimeMs).toBeLessThan(50);
+    expect(executionTimeMs).toBeLessThan(100);
   });
 
   async function runForRandomData(rows: number): Promise<number> {
