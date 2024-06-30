@@ -18,8 +18,7 @@ class TestEntity {
     public readonly createdAt: Date,
     public readonly enabled: boolean,
     public readonly jsonField: object,
-  ) {
-  }
+  ) {}
 }
 
 describe('Performance ORM tests', () => {
@@ -41,9 +40,7 @@ describe('Performance ORM tests', () => {
       castings: {
         enabled: FieldType.BOOLEAN,
       },
-      instantiator: row => new TestEntity(
-        row.id, row.age, row.createdAt, row.enabled, row.jsonField,
-      ),
+      instantiator: row => new TestEntity(row.id, row.age, row.createdAt, row.enabled, row.jsonField),
     });
   });
 
@@ -65,13 +62,15 @@ describe('Performance ORM tests', () => {
   async function runForRandomData(rows: number): Promise<number> {
     const rawValues = [
       ['id', 'age', 'createdAt', 'enabled', 'jsonField'],
-      ...Array(rows).fill(1).map((_) => ([
-        faker.string.uuid(),
-        faker.number.int().toString(),
-        DateTime.fromJSDate(faker.date.past()).toFormat('d/M/yyyy H:mm:ss'),
-        faker.datatype.boolean().toString(),
-        '[1,2,3,4,5]',
-      ])),
+      ...Array(rows)
+        .fill(1)
+        .map(_ => [
+          faker.string.uuid(),
+          faker.number.int().toString(),
+          DateTime.fromJSDate(faker.date.past()).toFormat('d/M/yyyy H:mm:ss'),
+          faker.datatype.boolean().toString(),
+          '[1,2,3,4,5]',
+        ]),
     ];
 
     (sheetClient.spreadsheets.values as MockProxy<sheets_v4.Resource$Spreadsheets$Values>).get.mockResolvedValue({
